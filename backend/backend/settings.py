@@ -11,9 +11,20 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    ...
+]
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 # Quick-start development settings - unsuitable for production
@@ -25,12 +36,12 @@ SECRET_KEY = 'django-insecure-az^2x^9-@$z!+4_p0xedtop66$l50%86r%#q3fn&-k!p#du--o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-MEDIA_URL = '/media/'
+BASE_DIR = Path(__file__).resolve().parent.parent  # Make sure BASE_DIR is a Path object
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Application definition

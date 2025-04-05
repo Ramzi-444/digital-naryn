@@ -3,7 +3,7 @@ services:
     name: my-django-api
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn your_project_name.wsgi
+    startCommand: gunicorn backend.wsgi
     envVars:
       - key: DJANGO_SETTINGS_MODULE
-        value: your_project_name.settings
+        value: backend.settings

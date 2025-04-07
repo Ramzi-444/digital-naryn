@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: my-django-api
+    name: backend
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn backend.wsgi:application

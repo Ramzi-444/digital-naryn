@@ -1,13 +1,13 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, View, StyleSheet, Dimensions } from 'react-native';
-import { useNavigation } from 'expo-router';
+import React, { useEffect, useRef } from "react";
+import { Animated, View, StyleSheet, Dimensions } from "react-native";
+import { router, useNavigation } from "expo-router";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const CIRCLE_SIZE = width * 0.7;
 
 const Animation = () => {
   const navigation = useNavigation();
-  
+
   const backgroundAnim = useRef(new Animated.Value(0)).current;
   const circleOpacity = useRef(new Animated.Value(0)).current;
   const imageOpacity = useRef(new Animated.Value(0)).current;
@@ -56,7 +56,7 @@ const Animation = () => {
   const animateDots = (times: number) => {
     if (times === 0) {
       // After dots animation ends, navigate to Main Screen
-    //   navigation.replace('(tabs)');
+      router.replace("/layouts/dashboard");
       return;
     }
 
@@ -105,23 +105,23 @@ const Animation = () => {
 
   const backgroundColor = backgroundAnim.interpolate({
     inputRange: [0, 1, 2],
-    outputRange: ['#ffffff', '#eaf4ff', '#ffffff'],
+    outputRange: ["#ffffff", "#eaf4ff", "#ffffff"],
   });
 
   return (
     <Animated.View style={[styles.container, { backgroundColor }]}>
       {/* Base Circle */}
       <Animated.View
-        style={[styles.circle, { opacity: circleOpacity, position: 'absolute' }]}
+        style={[
+          styles.circle,
+          { opacity: circleOpacity, position: "absolute" },
+        ]}
       />
 
       {/* Image Overlay */}
       <Animated.Image
-        source={require('../assets/animation.png')}
-        style={[
-          styles.circle,
-          { opacity: imageOpacity, position: 'absolute' },
-        ]}
+        source={require("../assets/animation.png")}
+        style={[styles.circle, { opacity: imageOpacity, position: "absolute" }]}
         resizeMode="cover"
       />
 
@@ -146,29 +146,29 @@ const Animation = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   circle: {
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
     borderRadius: CIRCLE_SIZE / 2,
-    backgroundColor: '#d8eaff',
+    backgroundColor: "#d8eaff",
   },
   dotWrapper: {
-    position: 'absolute',
+    position: "absolute",
     bottom: CIRCLE_SIZE / 2 + 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     width: 60,
     height: 60,
   },
   dot: {
-    position: 'absolute',
+    position: "absolute",
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#000',
+    backgroundColor: "#000",
   },
 });
 

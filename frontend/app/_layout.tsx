@@ -12,22 +12,32 @@ const RootLayout = () => {
 
   useEffect(() => {
     if (animationFinished) {
-      router.replace("/dashboard"); // Use replace to prevent going back to the animation
+      router.replace("/contact");
     }
   }, [animationFinished, router]);
 
   return (
     <>
-      {!animationFinished ? (
-        <Animation onAnimationFinished={handleAnimationFinished} />
-      ) : (
-        <Stack>
-          <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-          {/* Add other screens in your stack here */}
-        </Stack>
-      )}
+      <Stack>
+        <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="contact" options={{ headerShown: false }} />
+        <Stack.Screen 
+          name="modals/search" 
+          options={{ 
+            headerShown: false,
+            presentation: "modal",
+            animation: "slide_from_bottom"
+          }} 
+        />
+      </Stack>
     </>
   );
 };
 
 export default RootLayout;
+
+/*{!animationFinished ? (
+  <Animation onAnimationFinished={handleAnimationFinished} />
+) : (
+
+)} */

@@ -109,7 +109,6 @@ const Animation: React.FC<AnimationProps> = ({ onAnimationFinished }) => {
 
   return (
     <Animated.View style={[styles.container, { backgroundColor }]}>
-
       <Animated.View
         style={[
           styles.circle,

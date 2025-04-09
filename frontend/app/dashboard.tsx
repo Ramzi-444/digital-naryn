@@ -20,7 +20,7 @@ const categories = new Array(5).fill({
 
 const places = new Array(10).fill({
   name: "Saffran",
-  address: "Kulumbaeva 37, Naryn",
+  address: "Kulumbaeva 37, Naryn",   
   phone: "0701610101",
   logo: require("../assets/saffran-logo.png"), // your own image
 });

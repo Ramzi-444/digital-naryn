@@ -1,3 +1,31 @@
+<<<<<<< HEAD
+# === Global ===
+.DS_Store
+.env
+*.log
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.db
+
+# === Python / Django ===
+backend/env/                  # virtual environment
+backend/__pycache__/
+backend/**/*.pyc
+backend/db.sqlite3           # if using SQLite
+
+# === Node / React Native ===
+frontend/node_modules/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.expo/
+frontend/.expo-shared/
+frontend/.vscode/
+
+# === OS Files ===
+Thumbs.db
+=======
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
@@ -34,3 +62,4 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+>>>>>>> d4f1937 (Initial commit of frontend)

@@ -1,13 +1,14 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, View, StyleSheet, Dimensions } from "react-native";
-import { router, useNavigation } from "expo-router";
 
 const { width } = Dimensions.get("window");
 const CIRCLE_SIZE = width * 0.7;
 
-const Animation = () => {
-  const navigation = useNavigation();
+interface AnimationProps {
+  onAnimationFinished: (value: boolean) => void; // Assuming you want to pass a boolean argument
+}
 
+const Animation: React.FC<AnimationProps> = ({ onAnimationFinished }) => {
   const backgroundAnim = useRef(new Animated.Value(0)).current;
   const circleOpacity = useRef(new Animated.Value(0)).current;
   const imageOpacity = useRef(new Animated.Value(0)).current;
@@ -45,7 +46,7 @@ const Animation = () => {
     ]).start(() => {
       Animated.timing(dotsOpacity, {
         toValue: 1,
-        duration: 500,
+        duration: 300,
         useNativeDriver: false,
       }).start(() => {
         setTimeout(() => animateDots(3), 200);
@@ -55,9 +56,7 @@ const Animation = () => {
 
   const animateDots = (times: number) => {
     if (times === 0) {
-      // After dots animation ends, navigate to Main Screen
-      router.replace("/layouts/dashboard");
-      return;
+      return onAnimationFinished(false);
     }
 
     const radius = 20;
@@ -110,7 +109,7 @@ const Animation = () => {
 
   return (
     <Animated.View style={[styles.container, { backgroundColor }]}>
-      {/* Base Circle */}
+
       <Animated.View
         style={[
           styles.circle,

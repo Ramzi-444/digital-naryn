@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -27,6 +27,7 @@ const popularItems = [
 
 const SearchPage = () => {
   const router = useRouter();
+  const [searchText, setSearchText] = useState("");
 
   const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.item}>
@@ -46,6 +47,7 @@ const SearchPage = () => {
         options={{
           headerShown: false,
           presentation: "modal",
+          animation: "slide_from_bottom"
         }}
       />
 
@@ -64,15 +66,26 @@ const SearchPage = () => {
               placeholder="Search"
               placeholderTextColor="#999"
               style={styles.searchInput}
+              value={searchText}
+              onChangeText={setSearchText}
+              autoFocus
             />
+            {searchText.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchText("")}>
+                <Ionicons name="close-circle" size={20} color="#999" />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Question mark icon */}
           <TouchableOpacity
-            onPress={() => router.push("/contact")}
+            onPress={() => {
+              router.back();
+              router.push("/contact");
+            }}
             style={styles.helpButton}
           >
-            <Ionicons name="help" size={18} color="#fff" />
+            <Ionicons name="help-circle-outline" size={22} color="#007AFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -139,9 +152,7 @@ const styles = StyleSheet.create({
   },
   helpButton: {
     marginLeft: 10,
-    backgroundColor: "#438ee8",
-    padding: 6,
-    borderRadius: 8,
+    padding: 4,
   },
   sectionTitle: {
     fontWeight: "bold",

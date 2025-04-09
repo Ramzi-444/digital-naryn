@@ -118,7 +118,7 @@ const Animation: React.FC<AnimationProps> = ({ onAnimationFinished }) => {
 
       {/* Image Overlay */}
       <Animated.Image
-        source={require("../assets/animation.png")}
+        source={require("../assets/branding/animation.png")}
         style={[styles.circle, { opacity: imageOpacity, position: "absolute" }]}
         resizeMode="cover"
       />

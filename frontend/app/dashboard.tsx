@@ -12,21 +12,23 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 const categories = new Array(5).fill({
   title: "Restaurants",
-  icon: require("../assets/restaurant-icon.png"), // your own icon
+  icon: require("../assets/icons/restaurant-icon.png"), // your own icon
 });
 
 const places = new Array(10).fill({
   name: "Saffran",
   address: "Kulumbaeva 37, Naryn",   
   phone: "0701610101",
-  logo: require("../assets/saffran-logo.png"), // your own image
+  logo: require("../assets/branding/saffran-logo.png"), // your own image
 });
 
 const Dashboard = () => {
   const [showAll, setShowAll] = useState(false);
+  const router = useRouter();
 
   const renderCategoryCard = ({ item }: { item: any }) => (
     <View style={styles.card}>
@@ -36,14 +38,26 @@ const Dashboard = () => {
   );
 
   const renderPlaceCard = ({ item }: { item: any }) => (
-    <View style={styles.placeCard}>
+    <TouchableOpacity 
+      style={styles.placeCard}
+      onPress={() => router.push("/items/1")}
+    >
       <Image source={item.logo} style={styles.placeLogo} />
       <View style={styles.placeInfo}>
         <Text style={styles.placeName}>{item.name}</Text>
         <Text style={styles.placeAddress}>{item.address}</Text>
         <Text style={styles.placePhone}>{item.phone}</Text>
       </View>
-    </View>
+      <TouchableOpacity 
+        style={styles.photoPreview}
+        onPress={(e) => {
+          e.stopPropagation();
+          router.push("/photos/gallery");
+        }}
+      >
+        <Ionicons name="images-outline" size={22} color="#007AFF" />
+      </TouchableOpacity>
+    </TouchableOpacity>
   );
 
   return (
@@ -59,6 +73,12 @@ const Dashboard = () => {
         style={styles.input}
         clearButtonMode="always"
       />
+      <TouchableOpacity 
+        onPress={() => router.push("/contact")}
+        style={styles.helpButton}
+      >
+        <Ionicons name="help-circle-outline" size={22} color="#007AFF" />
+      </TouchableOpacity>
     </View>
 
     {/* Categories Header */}
@@ -209,6 +229,14 @@ const styles = StyleSheet.create({
   placePhone: {
     fontSize: 14,
     color: "#444",
+  },
+  helpButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
+  photoPreview: {
+    padding: 8,
+    marginLeft: 8,
   },
 });
 

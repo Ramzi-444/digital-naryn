@@ -18,9 +18,9 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 
 const headerImages = [
-  require('../../assets/bamboo-cafe.jpg'),
-  require('../../assets/cafe-1.jpg'),
-  require('../../assets/cafe-2.jpg'),
+  require('../../assets/places/bamboo-cafe/bamboo-cafe.jpg'),
+  require('../../assets/places/bamboo-cafe/cafe-1.jpg'),
+  require('../../assets/places/bamboo-cafe/cafe-2.jpg'),
 ];
 
 type Language = 'en' | 'ru';
@@ -35,6 +35,14 @@ type Translation = {
   copyNumber: string;
   openWhatsapp: string;
   description: string;
+  monday: string;
+  tuesday: string;
+  wednesday: string;
+  thursday: string;
+  friday: string;
+  saturday: string;
+  sunday: string;
+  openInMaps: string;
 };
 
 const translations: Record<Language, Translation> = {
@@ -48,6 +56,14 @@ const translations: Record<Language, Translation> = {
     copyNumber: 'Copy phone number',
     openWhatsapp: 'Open in WhatsApp',
     description: 'Nice and beautiful cafe to spend your day. A cozy place where you can enjoy your meal. Perfect for meetings and casual dining.',
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday',
+    thursday: 'Thursday',
+    friday: 'Friday',
+    saturday: 'Saturday',
+    sunday: 'Sunday',
+    openInMaps: 'Open in Maps',
   },
   ru: {
     overview: 'Обзор',
@@ -59,6 +75,14 @@ const translations: Record<Language, Translation> = {
     copyNumber: 'Скопировать номер',
     openWhatsapp: 'Открыть в WhatsApp',
     description: 'Уютное и красивое кафе, где можно провести свой день. Комфортное место, где можно насладиться едой. Идеально подходит для встреч и повседневного питания.',
+    monday: 'Понедельник',
+    tuesday: 'Вторник',
+    wednesday: 'Среда',
+    thursday: 'Четверг',
+    friday: 'Пятница',
+    saturday: 'Суббота',
+    sunday: 'Воскресенье',
+    openInMaps: 'Открыть в Картах',
   },
 };
 
@@ -90,13 +114,13 @@ const ItemPage = () => {
   }, []);
 
   const workingHours = {
-    Monday: '11:00 - 23:00',
-    Tuesday: '11:00 - 23:00',
-    Wednesday: '11:00 - 23:00',
-    Thursday: '11:00 - 23:00',
-    Friday: '11:00 - 23:00',
-    Saturday: '11:00 - 23:00',
-    Sunday: '11:00 - 23:00',
+    monday: '11:00 - 23:00',
+    tuesday: '11:00 - 23:00',
+    wednesday: '11:00 - 23:00',
+    thursday: '11:00 - 23:00',
+    friday: '11:00 - 23:00',
+    saturday: '11:00 - 23:00',
+    sunday: '11:00 - 23:00',
   };
 
   const location = {
@@ -125,7 +149,7 @@ const ItemPage = () => {
       <Stack.Screen options={{ headerShown: false }} />
       
       <ScrollView style={styles.scrollView} bounces={false}>
-        {/* Header Image with Gradient */}
+        {/* Header Image */}
         <View style={styles.headerContainer}>
           <Animated.Image
             source={headerImages[currentImageIndex]}
@@ -174,7 +198,16 @@ const ItemPage = () => {
 
         {/* Map Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.location}</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{t.location}</Text>
+            <TouchableOpacity 
+              onPress={() => Linking.openURL(`https://maps.apple.com/?q=${location.latitude},${location.longitude}`)}
+              style={styles.viewAllButton}
+            >
+              <Text style={styles.viewAllText}>Open in Maps</Text>
+              <Ionicons name="chevron-forward" size={16} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
           <View style={styles.mapContainer}>
             <MapView
               style={styles.map}
@@ -197,7 +230,7 @@ const ItemPage = () => {
           <Text style={styles.sectionTitle}>{t.workingHours}</Text>
           {Object.entries(workingHours).map(([day, hours]) => (
             <View key={day} style={styles.hoursRow}>
-              <Text style={styles.dayText}>{day}</Text>
+              <Text style={styles.dayText}>{t[day as keyof Translation]}</Text>
               <Text style={styles.hoursText}>{hours}</Text>
             </View>
           ))}
@@ -477,6 +510,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 12,
     color: '#000',
+  },
+  callOptionsModal: {
+    margin: 0,
+    justifyContent: 'flex-end',
+  },
+  callOptionsContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    paddingBottom: 34,
+  },
+  callOption: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  callOptionText: {
+    fontSize: 16,
+    color: '#007AFF',
   },
 });
 

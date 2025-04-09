@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,27 +9,58 @@ import {
   Dimensions,
   Modal,
   SafeAreaView,
+  Animated,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 const photos = [
-  require('../../assets/bamboo-cafe.jpg'),
-  require('../../assets/cafe-1.jpg'),
-  require('../../assets/cafe-2.jpg'),
+  require('../../assets/places/bamboo-cafe/bamboo-cafe.jpg'),
+  require('../../assets/places/bamboo-cafe/cafe-1.jpg'),
+  require('../../assets/places/bamboo-cafe/cafe-2.jpg'),
   // Add more photos here
 ];
 
 const GalleryPage = () => {
   const router = useRouter();
   const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const closePhoto = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setSelectedPhoto(null);
+    });
+  };
+
+  const openPhoto = (index: number) => {
+    setSelectedPhoto(index);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleBack = () => {
+    if (selectedPhoto !== null) {
+      closePhoto();
+    } else {
+      router.back();
+    }
+  };
 
   const renderPhoto = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       style={styles.photoContainer}
-      onPress={() => setSelectedPhoto(index)}
+      onPress={() => openPhoto(index)}
+      activeOpacity={0.9}
     >
       <Image source={item} style={styles.photoThumbnail} />
+      <View style={styles.photoOverlay} />
     </TouchableOpacity>
   );
 
@@ -41,7 +72,7 @@ const GalleryPage = () => {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
@@ -49,45 +80,66 @@ const GalleryPage = () => {
         <View style={styles.placeholder} />
       </View>
 
-      {/* Photos Grid */}
+      {/* Photos List */}
       <FlatList
         data={photos}
         renderItem={renderPhoto}
         keyExtractor={(_, index) => index.toString()}
-        numColumns={2}
-        contentContainerStyle={styles.photosGrid}
+        contentContainerStyle={styles.photosList}
+        showsVerticalScrollIndicator={false}
       />
 
       {/* Full Screen Photo Modal */}
       <Modal
         visible={selectedPhoto !== null}
         transparent={true}
-        animationType="fade"
+        animationType="none"
+        onRequestClose={closePhoto}
       >
-        <View style={styles.modalContainer}>
-          <SafeAreaView style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setSelectedPhoto(null)}
+        <Animated.View 
+          style={[
+            styles.modalContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{
+                scale: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.95, 1],
+                }),
+              }],
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={closePhoto}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="close" size={24} color="#fff" />
+          </TouchableOpacity>
+          
+          {selectedPhoto !== null && (
+            <TouchableOpacity 
+              activeOpacity={1} 
+              onPress={(e) => {
+                e.stopPropagation();
+              }}
+              style={styles.modalImageContainer}
             >
-              <Ionicons name="close" size={28} color="#fff" />
-            </TouchableOpacity>
-            {selectedPhoto !== null && (
               <Image
                 source={photos[selectedPhoto]}
                 style={styles.fullScreenPhoto}
                 resizeMode="contain"
               />
-            )}
-          </SafeAreaView>
-        </View>
+            </TouchableOpacity>
+          )}
+        </Animated.View>
       </Modal>
     </SafeAreaView>
   );
 };
 
-const { width } = Dimensions.get('window');
-const photoSize = (width - 48) / 2;
+const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -102,6 +154,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    backgroundColor: '#fff',
   },
   backButton: {
     width: 40,
@@ -117,43 +170,65 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  photosGrid: {
-    padding: 16,
+  photosList: {
+    paddingTop: 12,
+    paddingBottom: 24,
   },
   photoContainer: {
-    width: photoSize,
-    height: photoSize,
-    margin: 8,
+    width: width - 24,
+    height: (width - 24) * 0.65,
+    marginHorizontal: 12,
+    marginBottom: 12,
     borderRadius: 12,
     overflow: 'hidden',
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    alignSelf: 'center',
   },
   photoThumbnail: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
+  },
+  photoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.02)',
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-  },
-  modalContent: {
-    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalImageContainer: {
+    width: width,
+    height: height,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   closeButton: {
     position: 'absolute',
-    top: 20,
-    right: 20,
+    top: 50,
+    left: 20,
     zIndex: 1,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   fullScreenPhoto: {
-    width: '100%',
-    height: '100%',
+    width: width,
+    height: height * 0.8,
+    resizeMode: 'contain',
   },
 });
 

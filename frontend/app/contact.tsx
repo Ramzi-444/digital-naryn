@@ -24,7 +24,7 @@ export default function ContactPage() {
 
       {/* Custom Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace("/layouts/dashboard")}>
+        <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back-outline" size={26} color="#000" />
         </TouchableOpacity>
 
@@ -47,11 +47,12 @@ export default function ContactPage() {
             value={searchText}
             onChangeText={(text) => setSearchText(text)}
           />
+          {searchText.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchText("")}>
+              <Ionicons name="close-circle" size={20} color="#999" />
+            </TouchableOpacity>
+          )}
         </View>
-
-        <TouchableOpacity onPress={() => {}}>
-          <Ionicons name="help-circle-outline" size={22} color="#007AFF" />
-        </TouchableOpacity>
       </View>
 
       {/* Main Content */}
@@ -86,13 +87,13 @@ export default function ContactPage() {
         <View style={styles.socialIcons}>
           <TouchableOpacity>
             <Image
-              source={require("../assets/instagram.png")}
+              source={require("../assets/social/instagram.png")}
               style={styles.icon}
             />
           </TouchableOpacity>
           <TouchableOpacity>
             <Image
-              source={require("../assets/whatsapp.png")}
+              source={require("../assets/social/whatsapp.png")}
               style={styles.icon}
             />
           </TouchableOpacity>
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 10,
     flex: 1,
-    marginHorizontal: 12,
+    marginLeft: 12,
   },
   searchInput: {
     flex: 1,

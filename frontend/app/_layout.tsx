@@ -37,6 +37,7 @@ export default function RootLayout() {
           animation: "slide_from_bottom"
         }} 
       />
+      <Stack.Screen name="categories/[id]" />
       <Stack.Screen name="items/[id]" />
       <Stack.Screen name="photos/gallery" />
     </Stack>

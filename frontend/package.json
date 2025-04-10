@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
+    "@react-native-clipboard/clipboard": "^1.16.2",
+    "axios": "^1.8.4",
     "expo": "~52.0.43",
     "expo-constants": "~17.0.8",
     "expo-linear-gradient": "~14.0.2",

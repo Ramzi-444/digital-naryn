@@ -41,16 +41,22 @@ const SearchModal = () => {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#1A1A1A"
+        translucent={true}
+      />
       <Stack.Screen
         options={{
           presentation: "modal",
           animation: "slide_from_bottom",
           headerShown: false,
-          contentStyle: { backgroundColor: "#fff" },
+          contentStyle: {
+            backgroundColor: "#1A1A1A",
+          },
         }}
       />
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: StatusBar.currentHeight }]}>
         <View style={styles.searchHeader}>
           <View style={styles.searchInputContainer}>
             <Ionicons
@@ -80,12 +86,17 @@ const SearchModal = () => {
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.cancelButton}
+            activeOpacity={0.6}
           >
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+        >
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Recent Searches</Text>
             {recentSearches.map((item, index) => (
@@ -94,7 +105,12 @@ const SearchModal = () => {
                 style={({ pressed }) => [
                   styles.item,
                   pressed && styles.itemPressed,
+                  { opacity: pressed ? 0.7 : 1 },
                 ]}
+                android_ripple={{
+                  color: "#E8E8E8",
+                  borderless: false,
+                }}
                 onPress={() => handleSearch(item)}
               >
                 <View style={styles.iconContainer}>
@@ -118,7 +134,12 @@ const SearchModal = () => {
                 style={({ pressed }) => [
                   styles.item,
                   pressed && styles.itemPressed,
+                  { opacity: pressed ? 0.7 : 1 },
                 ]}
+                android_ripple={{
+                  color: "#E8E8E8",
+                  borderless: false,
+                }}
                 onPress={() => handleSearch(item.name)}
               >
                 <View style={styles.iconContainer}>
@@ -151,7 +172,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "ios" ? 12 : 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5E5",
+    borderBottomColor: "#F0F0F0",
     backgroundColor: "#fff",
     ...Platform.select({
       ios: {
@@ -177,14 +198,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E5E5",
   },
-  searchIcon: {
-    marginRight: 8,
-  },
   searchInput: {
     flex: 1,
     fontSize: 16,
     color: "#000",
     height: "100%",
+  },
+  searchIcon: {
+    marginRight: 8,
+    color: "#007AFF",
   },
   cancelButton: {
     paddingVertical: 8,
@@ -197,6 +219,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    backgroundColor: "#fff",
   },
   section: {
     paddingTop: 24,
@@ -222,18 +245,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginHorizontal: -8,
     paddingHorizontal: 8,
+    backgroundColor: "#fff",
   },
   itemPressed: {
-    backgroundColor: "#F0F0F0",
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#E8F2FF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
+    backgroundColor: Platform.select({
+      ios: "#F6F6F6",
+      android: "transparent",
+    }),
   },
   itemIcon: {
     marginRight: 0,
@@ -243,6 +261,15 @@ const styles = StyleSheet.create({
     color: "#000",
     letterSpacing: -0.4,
     fontWeight: "400",
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
 });
 

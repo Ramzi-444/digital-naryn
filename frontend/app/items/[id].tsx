@@ -19,6 +19,8 @@ import { useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker } from "react-native-maps";
 
+const { width } = Dimensions.get("window");
+
 const headerImages = [
   require("../../assets/places/bamboo-cafe/bamboo-cafe.jpg"),
   require("../../assets/places/bamboo-cafe/cafe-1.jpg"),
@@ -207,16 +209,6 @@ const ItemPage = () => {
 
   const currentDay = getCurrentDay();
 
-  const getStatusText = (isOpen: boolean) => {
-    return language === "en"
-      ? isOpen
-        ? "Open"
-        : "Closed"
-      : isOpen
-      ? "Открыто"
-      : "Закрыто";
-  };
-
   const openInMaps = () => {
     const scheme = Platform.select({
       ios: "maps:0,0?q=",
@@ -238,7 +230,13 @@ const ItemPage = () => {
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <ScrollView style={styles.scrollView} bounces={false}>
+      <ScrollView
+        style={styles.scrollView}
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+        decelerationRate="normal"
+        overScrollMode="never"
+      >
         {/* Header Image */}
         <View style={styles.headerContainer}>
           <Animated.Image
@@ -250,6 +248,7 @@ const ItemPage = () => {
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => router.back()}
+                activeOpacity={0.7}
               >
                 <Ionicons name="arrow-back" size={24} color="white" />
               </TouchableOpacity>
@@ -257,6 +256,7 @@ const ItemPage = () => {
               <TouchableOpacity
                 style={styles.searchBar}
                 onPress={() => router.push("/modals/search")}
+                activeOpacity={0.7}
               >
                 <Ionicons name="search" size={20} color="#999" />
                 <Text style={styles.searchText}>Search</Text>
@@ -390,7 +390,7 @@ const ItemPage = () => {
                       ]}
                     >
                       <Text style={styles.statusText}>
-                        {getStatusText(isOpen)}
+                        {isOpen ? "Open" : "Closed"}
                       </Text>
                     </View>
                   )}
@@ -419,11 +419,16 @@ const ItemPage = () => {
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.photosScroll}
+            decelerationRate="fast"
+            snapToInterval={width * 0.8}
+            snapToAlignment="center"
+            contentContainerStyle={{ paddingHorizontal: 16 }}
           >
             {headerImages.map((photo, index) => (
               <TouchableOpacity
                 key={index}
                 onPress={() => router.push("/photos/gallery")}
+                activeOpacity={0.8}
               >
                 <Image source={photo} style={styles.photoItem} />
               </TouchableOpacity>
@@ -607,7 +612,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f0f0f0",
   },
   lastSection: {
-    marginBottom: 100, // Space for the call button
+    marginBottom: 100,
   },
   sectionTitle: {
     fontSize: 20,
@@ -655,7 +660,6 @@ const styles = StyleSheet.create({
   },
   photosScroll: {
     marginHorizontal: -20,
-    paddingHorizontal: 20,
   },
   photoItem: {
     width: 200,
@@ -672,152 +676,6 @@ const styles = StyleSheet.create({
   map: {
     width: "100%",
     height: "100%",
-  },
-  markerContainer: {
-    alignItems: "center",
-  },
-  markerBubble: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 8,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  markerArrow: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderTopWidth: 8,
-    borderStyle: "solid",
-    backgroundColor: "transparent",
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderTopColor: "#fff",
-    alignSelf: "center",
-    marginTop: -1,
-  },
-  mapOverlayButton: {
-    position: "absolute",
-    bottom: 16,
-    left: 16,
-    right: 16,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  mapOverlayButtonText: {
-    color: "#007AFF",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-  callButton: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: "#007AFF",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  callButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  modalOverlayTouch: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 34,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 24,
-  },
-  modalHeader: {
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  modalIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 2,
-    marginBottom: 8,
-  },
-  modalOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  lastOption: {
-    borderBottomWidth: 0,
-  },
-  modalOptionText: {
-    fontSize: 16,
-    marginLeft: 12,
-    color: "#000",
-  },
-  callOptionsModal: {
-    margin: 0,
-    justifyContent: "flex-end",
-  },
-  callOptionsContainer: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    paddingBottom: 34,
-  },
-  callOption: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  callOptionText: {
-    fontSize: 16,
-    color: "#007AFF",
-  },
-  todayText: {
-    color: "#007AFF",
-    fontWeight: "600",
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -848,29 +706,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-  },
-  overviewLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#000",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  tagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 4,
-    gap: 8,
-  },
-  tag: {
-    backgroundColor: "#f0f0f0",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  tagText: {
-    fontSize: 14,
-    color: "#666",
   },
   amenitiesGrid: {
     marginTop: 16,
@@ -907,58 +742,61 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     fontWeight: "600",
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 8,
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
   },
-  statusText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "600",
+  modalOverlayTouch: {
+    flex: 1,
+    justifyContent: "flex-end",
   },
-  recenterButton: {
-    position: "absolute",
-    bottom: 16,
-    right: 16,
+  modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 22,
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 34,
   },
-  overviewLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#000",
-    marginTop: 16,
+  modalHeader: {
+    alignItems: "center",
     marginBottom: 8,
   },
-  tagsContainer: {
+  modalIndicator: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 2,
+    marginBottom: 8,
+  },
+  modalOption: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 4,
-    gap: 8,
+    alignItems: "center",
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
-  tag: {
-    backgroundColor: "#f0f0f0",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+  lastOption: {
+    borderBottomWidth: 0,
   },
-  tagText: {
-    fontSize: 14,
-    color: "#666",
+  modalOptionText: {
+    fontSize: 16,
+    marginLeft: 12,
+    color: "#000",
+  },
+  callButton: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: "#007AFF",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  callButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
   },
 });
 

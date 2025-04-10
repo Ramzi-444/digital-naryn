@@ -21,7 +21,7 @@ const categories = new Array(5).fill({
 
 const places = new Array(10).fill({
   name: "Saffran",
-  address: "Kulumbaeva 37, Naryn",   
+  address: "Kulumbaeva 37, Naryn",
   phone: "0701610101",
   logo: require("../assets/branding/saffran-logo.png"), // your own image
 });
@@ -38,7 +38,7 @@ const Dashboard = () => {
   );
 
   const renderPlaceCard = ({ item }: { item: any }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.placeCard}
       onPress={() => router.push("/items/1")}
     >
@@ -48,7 +48,7 @@ const Dashboard = () => {
         <Text style={styles.placeAddress}>{item.address}</Text>
         <Text style={styles.placePhone}>{item.phone}</Text>
       </View>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.photoPreview}
         onPress={(e) => {
           e.stopPropagation();
@@ -61,83 +61,95 @@ const Dashboard = () => {
   );
 
   return (
-<SafeAreaView style={styles.container}>
-  {/* Static Content */}
-  <View>
-    {/* Search */}
-    <View style={styles.searchContainer}>
-      <Ionicons name="search" size={20} color="#7a7a7a" style={styles.icon} />
-      <TextInput
-        placeholder="Search"
-        placeholderTextColor="#7a7a7a"
-        style={styles.input}
-        clearButtonMode="always"
-      />
-      <TouchableOpacity 
-        onPress={() => router.push("/contact")}
-        style={styles.helpButton}
-      >
-        <Ionicons name="help-circle-outline" size={22} color="#007AFF" />
-      </TouchableOpacity>
-    </View>
+    <SafeAreaView style={styles.container}>
+      {/* Static Content */}
+      <View>
+        {/* Search */}
+        <View style={styles.searchContainer}>
+          <Ionicons
+            name="search"
+            size={20}
+            color="#7a7a7a"
+            style={styles.icon}
+          />
+          <TextInput
+            placeholder="Search"
+            placeholderTextColor="#7a7a7a"
+            style={styles.input}
+            clearButtonMode="always"
+          />
+          <TouchableOpacity
+            onPress={() => router.push("/contact")}
+            style={styles.helpButton}
+          >
+            <Ionicons name="help-circle-outline" size={22} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
 
-    {/* Categories Header */}
-    <View style={styles.categoriesHeader}>
-      <Text style={styles.categoriesTitle}>Categories</Text>
-      <TouchableOpacity onPress={() => setShowAll(!showAll)}>
-        <Text style={styles.showAll}>{showAll ? "Show less" : "Show all"}</Text>
-      </TouchableOpacity>
-    </View>
+        {/* Categories Header */}
+        <View style={styles.categoriesHeader}>
+          <Text style={styles.categoriesTitle}>Categories</Text>
+          <TouchableOpacity onPress={() => setShowAll(!showAll)}>
+            <Text style={styles.showAll}>
+              {showAll ? "Show less" : "Show all"}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-    {/* Categories */}
-    {showAll ? (
+        {/* Categories */}
+        {showAll ? (
+          <FlatList
+            data={categories}
+            renderItem={renderCategoryCard}
+            keyExtractor={(_, index) => index.toString()}
+            numColumns={3}
+            scrollEnabled={false}
+            contentContainerStyle={styles.gridContainer}
+          />
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {categories.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => router.push("/categories/1")}
+              >
+                <View style={styles.card}>
+                  <Image source={item.icon} style={styles.iconImage} />
+                  <Text style={styles.cardText}>{item.title}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
+        {/* Header above scrolling list */}
+        <Text style={styles.placesTitle}>Places nearby</Text>
+      </View>
+
+      {/* Scrollable Places List */}
       <FlatList
-        data={categories}
-        renderItem={renderCategoryCard}
+        data={places}
+        renderItem={renderPlaceCard}
         keyExtractor={(_, index) => index.toString()}
-        numColumns={3}
-        scrollEnabled={false}
-        contentContainerStyle={styles.gridContainer}
+        contentContainerStyle={{ paddingBottom: 30 }}
+        showsVerticalScrollIndicator={false}
+        style={styles.placesList}
       />
-    ) : (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {categories.map((item, index) => (
-          <View style={styles.card} key={index}>
-            <Image source={item.icon} style={styles.iconImage} />
-            <Text style={styles.cardText}>{item.title}</Text>
-          </View>
-        ))}
-      </ScrollView>
-    )}
-
-    {/* Header above scrolling list */}
-    <Text style={styles.placesTitle}>Places nearby</Text>
-  </View>
-
-  {/* Scrollable Places List */}
-  <FlatList
-    data={places}
-    renderItem={renderPlaceCard}
-    keyExtractor={(_, index) => index.toString()}
-    contentContainerStyle={{ paddingBottom: 30 }}
-    showsVerticalScrollIndicator={false}
-    style={styles.placesList}
-  />
-</SafeAreaView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        paddingTop: 10,
-        paddingHorizontal: 16,
-        backgroundColor: "#fff",
-      },
-      
-      placesList: {
-        flex: 1, // ⬅️ This allows FlatList to take remaining space
-      },
+  container: {
+    flex: 1,
+    paddingTop: 10,
+    paddingHorizontal: 16,
+    backgroundColor: "#fff",
+  },
+
+  placesList: {
+    flex: 1, // ⬅️ This allows FlatList to take remaining space
+  },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,15 +9,13 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import axios from "axios";
 
-const categories = new Array(5).fill({
-  title: "Restaurants",
-  icon: require("../assets/icons/restaurant-icon.png"), // your own icon
-});
 
 const places = new Array(10).fill({
   name: "Saffran",
@@ -27,15 +25,46 @@ const places = new Array(10).fill({
 });
 
 const Dashboard = () => {
+  interface Category {
+    id: number;
+    name: string;
+    icon?: string;
+  }
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const router = useRouter();
   const { width } = Dimensions.get("window");
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get(
+          "http://157.230.109.162:8000/api/categories/"
+        );
+        setCategories(response.data); // Assuming the API returns an array of categories
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
   const renderCategoryCard = ({ item }: { item: any }) => (
-    <View style={styles.card}>
-      <Image source={item.icon} style={styles.iconImage} />
-      <Text style={styles.cardText}>{item.title}</Text>
-    </View>
+    <TouchableOpacity
+      onPress={() => router.push(`/categories/${item.id}`)} // Adjust the route as needed
+      activeOpacity={0.7}
+    >
+      <View style={styles.card}>
+        {item.icon ? (
+          <Image source={{ uri: item.icon }} style={styles.iconImage} />
+        ) : null}
+        <Text style={styles.cardText}>{item.name}</Text>
+      </View>
+    </TouchableOpacity>
   );
 
   const renderPlaceCard = ({ item }: { item: any }) => (
@@ -114,11 +143,13 @@ const Dashboard = () => {
         </View>
 
         {/* Categories */}
-        {showAll ? (
+        {loading ? (
+          <ActivityIndicator size="large" color="#007AFF" />
+        ) : showAll ? (
           <FlatList
             data={categories}
             renderItem={renderCategoryCard}
-            keyExtractor={(_, index) => index.toString()}
+            keyExtractor={(item) => item.id.toString()}
             numColumns={3}
             scrollEnabled={false}
             contentContainerStyle={styles.gridContainer}
@@ -128,11 +159,13 @@ const Dashboard = () => {
             {categories.map((item, index) => (
               <TouchableOpacity
                 key={index}
-                onPress={() => router.push("/categories/1")}
+                onPress={() => router.push(`/categories/${item.id}`)}
               >
                 <View style={styles.card}>
-                  <Image source={item.icon} style={styles.iconImage} />
-                  <Text style={styles.cardText}>{item.title}</Text>
+                  {item.icon ? (
+                    <Image source={{ uri: item.icon }} style={styles.iconImage} />
+                  ) : null}
+                  <Text style={styles.cardText}>{item.name}</Text>
                 </View>
               </TouchableOpacity>
             ))}

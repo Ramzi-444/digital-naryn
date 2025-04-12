@@ -109,6 +109,14 @@ const socialLinks = {
   instagram: "bamboo_naryn",
 };
 
+const normalizeWorkingHours = (workingHours: Record<string, string>) => {
+  const normalized: Record<string, string> = {};
+  Object.entries(workingHours).forEach(([key, value]) => {
+    normalized[key.toLowerCase()] = value;
+  });
+  return normalized;
+};
+
 const ItemPage = () => {
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -125,16 +133,18 @@ const ItemPage = () => {
   useEffect(() => {
     const fetchItem = async () => {
       try {
-        const response = await fetch(`http://157.230.109.162:8000/api/items/${id}`);
+        const response = await fetch(
+          `http://157.230.109.162:8000/api/items/${id}`
+        );
         const data = await response.json();
-        setItem(data);        
+        console.log("Fetched Item:", data); // Debugging
+        setItem(data);
       } catch (error) {
         console.error("Error fetching item:", error);
-        
       }
     };
     fetchItem();
-  }, [])
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -154,15 +164,29 @@ const ItemPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const workingHours = {
-    monday: "11:00 - 23:00",
-    tuesday: "11:00 - 23:00",
-    wednesday: "11:00 - 23:00",
-    thursday: "11:00 - 23:00",
-    friday: "11:00 - 23:00",
-    saturday: "11:00 - 23:00",
-    sunday: "11:00 - 23:00",
+  const defaultWorkingHours = {
+    monday: "Closed",
+    tuesday: "Closed",
+    wednesday: "Closed",
+    thursday: "Closed",
+    friday: "Closed",
+    saturday: "Closed",
+    sunday: "Closed",
   };
+
+  const workingHours = item?.working_hours
+    ? normalizeWorkingHours(item.working_hours)
+    : defaultWorkingHours;
+
+  const daysOfWeek = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+  ];
 
   const location = {
     latitude: 41.4281873,
@@ -201,13 +225,19 @@ const ItemPage = () => {
   };
 
   // Add function to check if currently open
-  const isCurrentlyOpen = (hours: string) => {
+  const isCurrentlyOpen = (hours: string): boolean => {
+    if (!hours || hours === "Closed" || !hours.includes("-")) {
+      return false; // Return false if hours are invalid or "Closed"
+    }
+
     const now = new Date();
-    const [start, end] = hours.split(" - ");
-    const [startHour] = start.split(":").map(Number);
-    const [endHour] = end.split(":").map(Number);
-    const currentHour = now.getHours();
-    return currentHour >= startHour && currentHour < endHour;
+    const [start, end] = hours.split("-").map((time) => {
+      const [hour, minute] = time.trim().split(":").map(Number);
+      return new Date().setHours(hour, minute, 0, 0);
+    });
+
+    const currentTime = now.getTime();
+    return currentTime >= start && currentTime < end;
   };
 
   // Get current day
@@ -291,7 +321,7 @@ const ItemPage = () => {
               <Text style={styles.title}>{item?.name || "noname"}</Text>
               <View style={styles.locationContainer}>
                 <Ionicons name="location" size={16} color="#fff" />
-                <Text style={styles.subtitle}>Kulumbayeva Street, 33</Text>
+                <Text style={styles.subtitle}>{item?.address || "noname"}</Text>
               </View>
             </View>
           </SafeAreaView>
@@ -300,7 +330,9 @@ const ItemPage = () => {
         {/* Overview Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.overview}</Text>
-          <Text style={styles.description}>{t.description}</Text>
+          <Text style={styles.description}>
+            {item?.description || "noname"}
+          </Text>
 
           <View style={styles.amenitiesGrid}>
             <View style={styles.amenityBox}>
@@ -322,9 +354,7 @@ const ItemPage = () => {
               style={[styles.amenityBox, styles.instagramBox]}
               onPress={() => {
                 if (socialLinks.instagram) {
-                  Linking.openURL(
-                    `https://instagram.com/${socialLinks.instagram}`
-                  );
+                  Linking.openURL(`https://instagram.com/${item.instagram}`);
                 } else {
                   Alert.alert(t.noInstagram);
                 }
@@ -378,7 +408,17 @@ const ItemPage = () => {
             <TouchableOpacity
               style={styles.recenterButton}
               onPress={() => {
-                mapRef.current?.animateToRegion(location, 300);
+                if (item?.latitude && item?.longitude) {
+                  const location = {
+                    latitude: item.latitude,
+                    longitude: item.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  };
+                  mapRef.current?.animateToRegion(location, 300);
+                } else {
+                  Alert.alert("Location not available");
+                }
               }}
             >
               <Ionicons name="location" size={24} color="#007AFF" />
@@ -389,8 +429,9 @@ const ItemPage = () => {
         {/* Working Hours Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.workingHours}</Text>
-          {Object.entries(workingHours).map(([day, hours]) => {
-            const isToday = day === currentDay;
+          {daysOfWeek.map((day) => {
+            const hours = workingHours[day as keyof typeof workingHours] || "Closed";
+            const isToday = day === currentDay.toLowerCase();
             const isOpen = isToday && isCurrentlyOpen(hours);
 
             return (
@@ -425,7 +466,7 @@ const ItemPage = () => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t.photos}</Text>
             <TouchableOpacity
-              onPress={() => router.push("/photos/id")}
+              onPress={() => router.push(`/photos/${item?.id}`)} // Adjust route as needed
               style={styles.viewAllButton}
             >
               <Text style={styles.viewAllText}>{t.viewAll}</Text>
@@ -441,15 +482,22 @@ const ItemPage = () => {
             snapToAlignment="center"
             contentContainerStyle={{ paddingHorizontal: 16 }}
           >
-            {headerImages.map((photo, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => router.push("/photos/gallery")}
-                activeOpacity={0.8}
-              >
-                <Image source={photo} style={styles.photoItem} />
-              </TouchableOpacity>
-            ))}
+            {item?.photos && item.photos.length > 0 ? (
+              item.photos.map((photo: string, index: number) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => router.push(`/photos/${item.id}`)} // Adjust route as needed
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={{ uri: `http://157.230.109.162:8000/media/${photo}` }}
+                    style={styles.photoItem}
+                  />
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={{ color: "#666", fontSize: 14 }}>No photos available</Text>
+            )}
           </ScrollView>
         </View>
       </ScrollView>

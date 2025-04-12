@@ -1,6 +1,9 @@
-# Digital Naryn Project
+# Digital Naryn
 
-## Live Backend Server
+A mobile application for discovering local businesses and services in Naryn city.
 
-👉 [Click here to access the live server](http://157.230.109.162:8000/)
+## 🚀 Live Demo
 
+### Backend Server
+
+👉 [Access the live backend server](http://157.230.109.162:8000/)

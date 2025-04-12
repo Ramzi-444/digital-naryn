@@ -29,6 +29,7 @@ const places = new Array(10).fill({
 const Dashboard = () => {
   const [showAll, setShowAll] = useState(false);
   const router = useRouter();
+  const { width } = Dimensions.get("window");
 
   const renderCategoryCard = ({ item }: { item: any }) => (
     <View style={styles.card}>
@@ -41,6 +42,7 @@ const Dashboard = () => {
     <TouchableOpacity
       style={styles.placeCard}
       onPress={() => router.push("/items/1")}
+      activeOpacity={0.7}
     >
       <Image source={item.logo} style={styles.placeLogo} />
       <View style={styles.placeInfo}>
@@ -54,6 +56,7 @@ const Dashboard = () => {
           e.stopPropagation();
           router.push("/photos/gallery");
         }}
+        activeOpacity={0.6}
       >
         <Ionicons name="images-outline" size={22} color="#007AFF" />
       </TouchableOpacity>
@@ -145,9 +148,12 @@ const Dashboard = () => {
         data={places}
         renderItem={renderPlaceCard}
         keyExtractor={(_, index) => index.toString()}
-        contentContainerStyle={{ paddingBottom: 30 }}
+        contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
         style={styles.placesList}
+        bounces={true}
+        overScrollMode="never"
+        decelerationRate="normal"
       />
     </SafeAreaView>
   );
@@ -160,9 +166,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: "#fff",
   },
-
   placesList: {
-    flex: 1, // ⬅️ This allows FlatList to take remaining space
+    flex: 1,
   },
   searchContainer: {
     flexDirection: "row",

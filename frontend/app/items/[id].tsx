@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,18 +12,22 @@ import {
   SafeAreaView,
   Animated,
   Modal,
-} from 'react-native';
-import { useRouter, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker } from 'react-native-maps';
+  Platform,
+  Alert,
+} from "react-native";
+import { useRouter, Stack } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import MapView, { Marker } from "react-native-maps";
+
+const { width } = Dimensions.get("window");
 
 const headerImages = [
-  require('../../assets/places/bamboo-cafe/bamboo-cafe.jpg'),
-  require('../../assets/places/bamboo-cafe/cafe-1.jpg'),
-  require('../../assets/places/bamboo-cafe/cafe-2.jpg'),
+  require("../../assets/places/bamboo-cafe/bamboo-cafe.jpg"),
+  require("../../assets/places/bamboo-cafe/cafe-1.jpg"),
+  require("../../assets/places/bamboo-cafe/cafe-2.jpg"),
 ];
 
-type Language = 'en' | 'ru';
+type Language = "en" | "ru";
 
 type Translation = {
   overview: string;
@@ -43,55 +47,75 @@ type Translation = {
   saturday: string;
   sunday: string;
   openInMaps: string;
+  noInstagram: string;
+  followUs: string;
+  delivery: string;
+  takeaway: string;
 };
 
 const translations: Record<Language, Translation> = {
   en: {
-    overview: 'Overview',
-    workingHours: 'Working Hours',
-    location: 'Location',
-    photos: 'Photos',
-    viewAll: 'View all',
-    callNow: 'Call Now',
-    copyNumber: 'Copy phone number',
-    openWhatsapp: 'Open in WhatsApp',
-    description: 'Nice and beautiful cafe to spend your day. A cozy place where you can enjoy your meal. Perfect for meetings and casual dining.',
-    monday: 'Monday',
-    tuesday: 'Tuesday',
-    wednesday: 'Wednesday',
-    thursday: 'Thursday',
-    friday: 'Friday',
-    saturday: 'Saturday',
-    sunday: 'Sunday',
-    openInMaps: 'Open in Maps',
+    overview: "Overview",
+    workingHours: "Working Hours",
+    location: "Location",
+    photos: "Photos",
+    viewAll: "View all",
+    callNow: "Call Now",
+    copyNumber: "Copy phone number",
+    openWhatsapp: "Open in WhatsApp",
+    description:
+      "Nice and beautiful cafe to spend your day. A cozy place where you can enjoy your meal. Perfect for meetings and casual dining.",
+    monday: "Monday",
+    tuesday: "Tuesday",
+    wednesday: "Wednesday",
+    thursday: "Thursday",
+    friday: "Friday",
+    saturday: "Saturday",
+    sunday: "Sunday",
+    openInMaps: "Open in Maps",
+    noInstagram: "No Instagram profile available",
+    followUs: "Follow us",
+    delivery: "Delivery",
+    takeaway: "Takeaway",
   },
   ru: {
-    overview: 'Обзор',
-    workingHours: 'Режим работы',
-    location: 'Расположение',
-    photos: 'Фотографии',
-    viewAll: 'Показать все',
-    callNow: 'Позвонить',
-    copyNumber: 'Скопировать номер',
-    openWhatsapp: 'Открыть в WhatsApp',
-    description: 'Уютное и красивое кафе, где можно провести свой день. Комфортное место, где можно насладиться едой. Идеально подходит для встреч и повседневного питания.',
-    monday: 'Понедельник',
-    tuesday: 'Вторник',
-    wednesday: 'Среда',
-    thursday: 'Четверг',
-    friday: 'Пятница',
-    saturday: 'Суббота',
-    sunday: 'Воскресенье',
-    openInMaps: 'Открыть в Картах',
+    overview: "Обзор",
+    workingHours: "Режим работы",
+    location: "Расположение",
+    photos: "Фотографии",
+    viewAll: "Показать все",
+    callNow: "Позвонить",
+    copyNumber: "Скопировать номер",
+    openWhatsapp: "Открыть в WhatsApp",
+    description:
+      "Уютное и красивое кафе, где можно провести свой день. Комфортное место, где можно насладиться едой. Идеально подходит для встреч и повседневного питания.",
+    monday: "Понедельник",
+    tuesday: "Вторник",
+    wednesday: "Среда",
+    thursday: "Четверг",
+    friday: "Пятница",
+    saturday: "Суббота",
+    sunday: "Воскресенье",
+    openInMaps: "Открыть в Картах",
+    noInstagram: "Нет профиля в Instagram",
+    followUs: "Подписывайтесь",
+    delivery: "Доставка",
+    takeaway: "На вынос",
   },
+};
+
+const socialLinks = {
+  instagram: "bamboo_naryn",
 };
 
 const ItemPage = () => {
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useState<Language>("en");
   const [showCallOptions, setShowCallOptions] = useState(false);
   const fadeAnim = new Animated.Value(1);
+  const modalAnim = useRef(new Animated.Value(0)).current;
+  const mapRef = useRef<MapView | null>(null);
 
   const t = translations[language];
 
@@ -103,7 +127,7 @@ const ItemPage = () => {
         duration: 500,
         useNativeDriver: true,
       }).start(() => {
-        setCurrentImageIndex((prev) => 
+        setCurrentImageIndex((prev) =>
           prev === headerImages.length - 1 ? 0 : prev + 1
         );
         fadeAnim.setValue(1);
@@ -114,24 +138,39 @@ const ItemPage = () => {
   }, []);
 
   const workingHours = {
-    monday: '11:00 - 23:00',
-    tuesday: '11:00 - 23:00',
-    wednesday: '11:00 - 23:00',
-    thursday: '11:00 - 23:00',
-    friday: '11:00 - 23:00',
-    saturday: '11:00 - 23:00',
-    sunday: '11:00 - 23:00',
+    monday: "11:00 - 23:00",
+    tuesday: "11:00 - 23:00",
+    wednesday: "11:00 - 23:00",
+    thursday: "11:00 - 23:00",
+    friday: "11:00 - 23:00",
+    saturday: "11:00 - 23:00",
+    sunday: "11:00 - 23:00",
   };
 
   const location = {
-    latitude: 41.4287,  // Replace with actual coordinates
-    longitude: 75.9911, // Replace with actual coordinates
+    latitude: 41.4287,
+    longitude: 75.9911,
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   };
 
   const handleCallOptions = () => {
     setShowCallOptions(true);
+    Animated.timing(modalAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeCallOptions = () => {
+    Animated.timing(modalAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowCallOptions(false);
+    });
   };
 
   const handleCopyNumber = () => {
@@ -140,15 +179,64 @@ const ItemPage = () => {
   };
 
   const handleWhatsApp = () => {
-    Linking.openURL('whatsapp://send?phone=+1234567890');
+    Linking.openURL("whatsapp://send?phone=+1234567890");
     setShowCallOptions(false);
+  };
+
+  // Add function to check if currently open
+  const isCurrentlyOpen = (hours: string) => {
+    const now = new Date();
+    const [start, end] = hours.split(" - ");
+    const [startHour] = start.split(":").map(Number);
+    const [endHour] = end.split(":").map(Number);
+    const currentHour = now.getHours();
+    return currentHour >= startHour && currentHour < endHour;
+  };
+
+  // Get current day
+  const getCurrentDay = () => {
+    const days = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+    return days[new Date().getDay()];
+  };
+
+  const currentDay = getCurrentDay();
+
+  const openInMaps = () => {
+    const scheme = Platform.select({
+      ios: "maps:0,0?q=",
+      android: "geo:0,0?q=",
+    });
+    const latLng = `${location.latitude},${location.longitude}`;
+    const label = "Bamboo Cafe";
+    const url = Platform.select({
+      ios: `${scheme}${label}@${latLng}`,
+      android: `${scheme}${latLng}(${label})`,
+    });
+
+    if (url) {
+      Linking.openURL(url);
+    }
   };
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      
-      <ScrollView style={styles.scrollView} bounces={false}>
+
+      <ScrollView
+        style={styles.scrollView}
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+        decelerationRate="normal"
+        overScrollMode="never"
+      >
         {/* Header Image */}
         <View style={styles.headerContainer}>
           <Animated.Image
@@ -157,24 +245,26 @@ const ItemPage = () => {
           />
           <SafeAreaView style={styles.headerOverlay}>
             <View style={styles.topHeader}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => router.back()}
+                activeOpacity={0.7}
               >
                 <Ionicons name="arrow-back" size={24} color="white" />
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.searchBar}
-                onPress={() => router.push('/modals/search')}
+                onPress={() => router.push("/modals/search")}
+                activeOpacity={0.7}
               >
                 <Ionicons name="search" size={20} color="#999" />
                 <Text style={styles.searchText}>Search</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.langButton}
-                onPress={() => setLanguage(language === 'en' ? 'ru' : 'en')}
+                onPress={() => setLanguage(language === "en" ? "ru" : "en")}
               >
                 <Ionicons name="globe-outline" size={24} color="white" />
               </TouchableOpacity>
@@ -194,17 +284,59 @@ const ItemPage = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.overview}</Text>
           <Text style={styles.description}>{t.description}</Text>
+
+          <View style={styles.amenitiesGrid}>
+            <View style={styles.amenityBox}>
+              <Ionicons name="wifi" size={24} color="#666" />
+              <Text style={styles.amenityText}>Free WiFi</Text>
+            </View>
+
+            <View style={styles.amenityBox}>
+              <Ionicons name="car" size={24} color="#666" />
+              <Text style={styles.amenityText}>Parking</Text>
+            </View>
+
+            <View style={styles.amenityBox}>
+              <Ionicons name="qr-code" size={24} color="#666" />
+              <Text style={styles.amenityText}>QR Payment</Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.amenityBox, styles.instagramBox]}
+              onPress={() => {
+                if (socialLinks.instagram) {
+                  Linking.openURL(
+                    `https://instagram.com/${socialLinks.instagram}`
+                  );
+                } else {
+                  Alert.alert(t.noInstagram);
+                }
+              }}
+            >
+              <Ionicons name="logo-instagram" size={28} color="#E4405F" />
+              <Text style={[styles.amenityText, styles.instagramText]}>
+                {t.followUs}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.amenityBox}>
+              <Ionicons name="bicycle" size={24} color="#666" />
+              <Text style={styles.amenityText}>{t.delivery}</Text>
+            </View>
+
+            <View style={styles.amenityBox}>
+              <Ionicons name="bag-handle" size={24} color="#666" />
+              <Text style={styles.amenityText}>{t.takeaway}</Text>
+            </View>
+          </View>
         </View>
 
         {/* Map Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t.location}</Text>
-            <TouchableOpacity 
-              onPress={() => Linking.openURL(`https://maps.apple.com/?q=${location.latitude},${location.longitude}`)}
-              style={styles.viewAllButton}
-            >
-              <Text style={styles.viewAllText}>Open in Maps</Text>
+            <TouchableOpacity onPress={openInMaps} style={styles.viewAllButton}>
+              <Text style={styles.viewAllText}>{t.openInMaps}</Text>
               <Ionicons name="chevron-forward" size={16} color="#007AFF" />
             </TouchableOpacity>
           </View>
@@ -212,56 +344,93 @@ const ItemPage = () => {
             <MapView
               style={styles.map}
               initialRegion={location}
-              scrollEnabled={false}
-              zoomEnabled={false}
+              scrollEnabled={true}
+              zoomEnabled={true}
+              showsUserLocation={true}
+              ref={mapRef}
             >
               <Marker
                 coordinate={{
                   latitude: location.latitude,
                   longitude: location.longitude,
                 }}
+                title="Bamboo Cafe"
+                description="Kulumbayeva Street, 33"
               />
             </MapView>
+            <TouchableOpacity
+              style={styles.recenterButton}
+              onPress={() => {
+                mapRef.current?.animateToRegion(location, 300);
+              }}
+            >
+              <Ionicons name="location" size={24} color="#007AFF" />
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* Working Hours Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.workingHours}</Text>
-          {Object.entries(workingHours).map(([day, hours]) => (
-            <View key={day} style={styles.hoursRow}>
-              <Text style={styles.dayText}>{t[day as keyof Translation]}</Text>
-              <Text style={styles.hoursText}>{hours}</Text>
-            </View>
-          ))}
+          {Object.entries(workingHours).map(([day, hours]) => {
+            const isToday = day === currentDay;
+            const isOpen = isToday && isCurrentlyOpen(hours);
+
+            return (
+              <View key={day} style={styles.hoursRow}>
+                <View style={styles.dayContainer}>
+                  <Text style={[styles.dayText, isToday && styles.todayText]}>
+                    {t[day as keyof Translation]}
+                  </Text>
+                  {isToday && (
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: isOpen ? "#34C759" : "#FF3B30" },
+                      ]}
+                    >
+                      <Text style={styles.statusText}>
+                        {isOpen ? "Open" : "Closed"}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.hoursText, isToday && styles.todayText]}>
+                  {hours}
+                </Text>
+              </View>
+            );
+          })}
         </View>
 
         {/* Photos Section */}
         <View style={[styles.section, styles.lastSection]}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t.photos}</Text>
-            <TouchableOpacity 
-              onPress={() => router.push('/photos/gallery')}
+            <TouchableOpacity
+              onPress={() => router.push("/photos/gallery")}
               style={styles.viewAllButton}
             >
               <Text style={styles.viewAllText}>{t.viewAll}</Text>
               <Ionicons name="chevron-forward" size={16} color="#007AFF" />
             </TouchableOpacity>
           </View>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.photosScroll}
+            decelerationRate="fast"
+            snapToInterval={width * 0.8}
+            snapToAlignment="center"
+            contentContainerStyle={{ paddingHorizontal: 16 }}
           >
             {headerImages.map((photo, index) => (
               <TouchableOpacity
                 key={index}
-                onPress={() => router.push('/photos/gallery')}
+                onPress={() => router.push("/photos/gallery")}
+                activeOpacity={0.8}
               >
-                <Image
-                  source={photo}
-                  style={styles.photoItem}
-                />
+                <Image source={photo} style={styles.photoItem} />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -272,50 +441,81 @@ const ItemPage = () => {
       <Modal
         visible={showCallOptions}
         transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowCallOptions(false)}
+        animationType="none"
+        onRequestClose={closeCallOptions}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowCallOptions(false)}
+        <Animated.View
+          style={[
+            styles.modalOverlay,
+            {
+              opacity: modalAnim,
+              backgroundColor: "rgba(0,0,0,0.6)",
+            },
+          ]}
         >
-          <View style={styles.modalContent}>
-            <TouchableOpacity 
-              style={styles.modalOption}
-              onPress={() => {
-                Linking.openURL('tel:+1234567890');
-                setShowCallOptions(false);
-              }}
+          <TouchableOpacity
+            style={styles.modalOverlayTouch}
+            activeOpacity={1}
+            onPress={closeCallOptions}
+          >
+            <Animated.View
+              style={[
+                styles.modalContent,
+                {
+                  transform: [
+                    {
+                      translateY: modalAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [600, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
             >
-              <Ionicons name="call-outline" size={24} color="#007AFF" />
-              <Text style={styles.modalOptionText}>{t.callNow}</Text>
-            </TouchableOpacity>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalIndicator} />
+              </View>
 
-            <TouchableOpacity 
-              style={styles.modalOption}
-              onPress={handleCopyNumber}
-            >
-              <Ionicons name="copy-outline" size={24} color="#007AFF" />
-              <Text style={styles.modalOptionText}>{t.copyNumber}</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => {
+                  Linking.openURL("tel:+1234567890");
+                  closeCallOptions();
+                }}
+              >
+                <Ionicons name="call-outline" size={24} color="#007AFF" />
+                <Text style={styles.modalOptionText}>{t.callNow}</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={styles.modalOption}
-              onPress={handleWhatsApp}
-            >
-              <Ionicons name="logo-whatsapp" size={24} color="#007AFF" />
-              <Text style={styles.modalOptionText}>{t.openWhatsapp}</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => {
+                  handleCopyNumber();
+                  closeCallOptions();
+                }}
+              >
+                <Ionicons name="copy-outline" size={24} color="#007AFF" />
+                <Text style={styles.modalOptionText}>{t.copyNumber}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalOption, styles.lastOption]}
+                onPress={() => {
+                  handleWhatsApp();
+                  closeCallOptions();
+                }}
+              >
+                <Ionicons name="logo-whatsapp" size={24} color="#007AFF" />
+                <Text style={styles.modalOptionText}>{t.openWhatsapp}</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </TouchableOpacity>
+        </Animated.View>
       </Modal>
 
       {/* Call Now Button */}
-      <TouchableOpacity
-        style={styles.callButton}
-        onPress={handleCallOptions}
-      >
+      <TouchableOpacity style={styles.callButton} onPress={handleCallOptions}>
         <Text style={styles.callButtonText}>{t.callNow}</Text>
       </TouchableOpacity>
     </View>
@@ -325,48 +525,48 @@ const ItemPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   scrollView: {
     flex: 1,
   },
   headerContainer: {
     height: 400,
-    position: 'relative',
+    position: "relative",
   },
   headerImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   headerOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: "rgba(0,0,0,0.3)",
     paddingTop: 50,
   },
   topHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchBar: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     marginHorizontal: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -375,87 +575,91 @@ const styles = StyleSheet.create({
   searchText: {
     marginLeft: 8,
     fontSize: 16,
-    color: '#999',
+    color: "#999",
   },
   langButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   titleContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     left: 20,
     right: 20,
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 8,
   },
   locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: '#fff',
+    color: "#fff",
     marginLeft: 4,
   },
   section: {
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   lastSection: {
-    marginBottom: 100, // Space for the call button
+    marginBottom: 100,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 15,
-    color: '#000',
+    color: "#000",
   },
   description: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#666',
+    color: "#666",
   },
   hoursRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingVertical: 8,
+  },
+  dayContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   dayText: {
     fontSize: 16,
-    color: '#000',
+    color: "#000",
   },
   hoursText: {
     fontSize: 16,
-    color: '#666',
+    color: "#666",
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
   viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   viewAllText: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 14,
     marginRight: 4,
   },
   photosScroll: {
     marginHorizontal: -20,
-    paddingHorizontal: 20,
   },
   photoItem: {
     width: 200,
@@ -464,73 +668,136 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   mapContainer: {
-    height: 200,
-    borderRadius: 12,
-    overflow: 'hidden',
+    height: 250,
+    borderRadius: 16,
+    overflow: "hidden",
+    position: "relative",
   },
   map: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
-  callButton: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: '#007AFF',
-    paddingVertical: 16,
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 12,
-    alignItems: 'center',
+    marginLeft: 8,
   },
-  callButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
+  statusText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  recenterButton: {
+    position: "absolute",
+    bottom: 16,
+    right: 16,
+    backgroundColor: "#fff",
+    borderRadius: 22,
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  amenitiesGrid: {
+    marginTop: 16,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    justifyContent: "space-between",
+  },
+  amenityBox: {
+    width: "30%",
+    backgroundColor: "#f8f8f8",
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 80,
+  },
+  instagramBox: {
+    backgroundColor: "#fff0f5",
+    borderWidth: 1,
+    borderColor: "#E4405F",
+  },
+  amenityText: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  instagramText: {
+    color: "#E4405F",
+    fontWeight: "500",
+  },
+  todayText: {
+    color: "#007AFF",
+    fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
+  },
+  modalOverlayTouch: {
+    flex: 1,
+    justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 34,
+  },
+  modalHeader: {
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  modalIndicator: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 2,
+    marginBottom: 8,
   },
   modalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
+  },
+  lastOption: {
+    borderBottomWidth: 0,
   },
   modalOptionText: {
     fontSize: 16,
     marginLeft: 12,
-    color: '#000',
+    color: "#000",
   },
-  callOptionsModal: {
-    margin: 0,
-    justifyContent: 'flex-end',
-  },
-  callOptionsContainer: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    paddingBottom: 34,
-  },
-  callOption: {
+  callButton: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: "#007AFF",
     paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderRadius: 12,
+    alignItems: "center",
   },
-  callOptionText: {
-    fontSize: 16,
-    color: '#007AFF',
+  callButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
   },
 });
 
-export default ItemPage; 
+export default ItemPage;

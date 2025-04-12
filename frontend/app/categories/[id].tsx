@@ -55,6 +55,7 @@ const CategoriesPage = () => {
     <TouchableOpacity
       style={styles.placeCard}
       onPress={() => router.push("/items/1")}
+      activeOpacity={0.7}
     >
       <Image source={item.logo} style={styles.placeLogo} />
       <View style={styles.placeInfo}>
@@ -76,7 +77,13 @@ const CategoriesPage = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingHorizontal: 16,
+        }}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
@@ -84,7 +91,10 @@ const CategoriesPage = () => {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push("/modals/search")} style={{ flex: 1 }}>
+        <TouchableOpacity
+          onPress={() => router.push("/modals/search")}
+          style={{ flex: 1 }}
+        >
           <View style={styles.searchContainer}>
             <Ionicons
               name="search"
@@ -124,7 +134,12 @@ const CategoriesPage = () => {
           zoomEnabled={true}
           pitchEnabled={true}
           rotateEnabled={true}
-          showsUserLocation={true} // Optional: show current location
+          showsUserLocation={true}
+          showsCompass={true}
+          showsScale={true}
+          loadingEnabled={true}
+          loadingIndicatorColor="#007AFF"
+          loadingBackgroundColor="#ffffff"
         />
       </View>
       {/* Scrollable Bottom Sheet Style List */}
@@ -134,6 +149,10 @@ const CategoriesPage = () => {
           renderItem={renderPlaceCard}
           keyExtractor={(_, index) => index.toString()}
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          overScrollMode="never"
+          decelerationRate="normal"
+          contentContainerStyle={{ paddingBottom: 20 }}
         />
       </View>
     </SafeAreaView>
@@ -154,7 +173,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginHorizontal: 16,
     marginTop: 10,
-    
   },
   icon: {
     marginRight: 8,
@@ -163,7 +181,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: "#000",
-    
   },
   helpButton: {
     marginLeft: 8,

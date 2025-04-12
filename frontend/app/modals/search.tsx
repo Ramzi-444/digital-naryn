@@ -5,183 +5,272 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  FlatList,
-  SafeAreaView,
+  ScrollView,
+  Platform,
+  StatusBar,
+  Pressable,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter, Stack } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 
-const recentItems = [
-  { id: "1", icon: "bed-outline", label: "Hotels" },
-  { id: "2", icon: "restaurant-outline", label: "Restaurants" },
-];
+// Define icon types to fix TypeScript errors
+type IconName = keyof typeof Ionicons.glyphMap;
 
-const popularItems = [
-  { id: "3", icon: "cafe-outline", label: "Cafes" },
-  { id: "4", icon: "restaurant-outline", label: "Restaurants" },
-  { id: "5", icon: "storefront-outline", label: "Shops" },
-  { id: "6", icon: "build-outline", label: "Repair services" },
-  { id: "7", icon: "cut-outline", label: "Beauty salons" },
-  { id: "8", icon: "barbell-outline", label: "Gym" },
-];
-
-const SearchPage = () => {
+const SearchModal = () => {
   const router = useRouter();
-  const [searchText, setSearchText] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.item}>
-      <Ionicons
-        name={item.icon}
-        size={30}
-        color="#61BFFF"
-        style={styles.icon}
-      />
-      <Text style={styles.label}>{item.label}</Text>
-    </TouchableOpacity>
-  );
+  const recentSearches = ["Hotels", "Restaurants"];
+  const popularItems = [
+    { name: "Cafes", icon: "cafe" },
+    { name: "Restaurants", icon: "restaurant" },
+    { name: "Shops", icon: "cart" },
+    { name: "Repair services", icon: "construct" },
+    { name: "Beauty salons", icon: "cut" },
+    { name: "Gym", icon: "fitness" },
+  ];
+
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#1A1A1A"
+        translucent={true}
+      />
       <Stack.Screen
         options={{
-          headerShown: false,
           presentation: "modal",
-          animation: "slide_from_bottom"
+          animation: "slide_from_bottom",
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: "#1A1A1A",
+          },
         }}
       />
-
-      {/* Header with back + search bar + question icon */}
-      <View style={styles.header}>
-        {/* Back button */}
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back-outline" size={26} color="#000" />
-        </TouchableOpacity>
-
-        {/* Search bar */}
-        <View style={styles.searchBarWrapper}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={25} color="#999" />
-            <TextInput
-              placeholder="Search"
-              placeholderTextColor="#999"
-              style={styles.searchInput}
-              value={searchText}
-              onChangeText={setSearchText}
-              autoFocus
+      <View style={[styles.container, { paddingTop: StatusBar.currentHeight }]}>
+        <View style={styles.searchHeader}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons
+              name="search"
+              size={22}
+              color="#007AFF"
+              style={styles.searchIcon}
             />
-            {searchText.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchText("")}>
-                <Ionicons name="close-circle" size={20} color="#999" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search..."
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoFocus
+              placeholderTextColor="#A3A3A3"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={clearSearch}>
+                <Ionicons
+                  name="close-circle-outline"
+                  size={22}
+                  color="#007AFF"
+                />
               </TouchableOpacity>
             )}
           </View>
-
-          {/* Question mark icon */}
           <TouchableOpacity
-            onPress={() => {
-              router.back();
-              router.push("/contact");
-            }}
-            style={styles.helpButton}
+            onPress={() => router.back()}
+            style={styles.cancelButton}
+            activeOpacity={0.6}
           >
-            <Ionicons name="help-circle-outline" size={22} color="#007AFF" />
+            <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Recent */}
-      <Text style={styles.sectionTitle}>Recent</Text>
-      <View style={styles.cardContainer}>
-        <FlatList
-          data={recentItems}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          scrollEnabled={false}
-        />
-      </View>
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+        >
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recent Searches</Text>
+            {recentSearches.map((item, index) => (
+              <Pressable
+                key={index}
+                style={({ pressed }) => [
+                  styles.item,
+                  pressed && styles.itemPressed,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}
+                android_ripple={{
+                  color: "#E8E8E8",
+                  borderless: false,
+                }}
+                onPress={() => handleSearch(item)}
+              >
+                <View style={styles.iconContainer}>
+                  <Ionicons
+                    name="timer-outline"
+                    size={22}
+                    color="#007AFF"
+                    style={styles.itemIcon}
+                  />
+                </View>
+                <Text style={styles.itemText}>{item}</Text>
+              </Pressable>
+            ))}
+          </View>
 
-      {/* Popular */}
-      <Text style={styles.sectionTitle}>Popular</Text>
-      <View style={styles.cardContainer}>
-        <FlatList
-          data={popularItems}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          scrollEnabled={false}
-        />
+          <View style={[styles.section, styles.lastSection]}>
+            <Text style={styles.sectionTitle}>Popular</Text>
+            {popularItems.map((item, index) => (
+              <Pressable
+                key={index}
+                style={({ pressed }) => [
+                  styles.item,
+                  pressed && styles.itemPressed,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}
+                android_ripple={{
+                  color: "#E8E8E8",
+                  borderless: false,
+                }}
+                onPress={() => handleSearch(item.name)}
+              >
+                <View style={styles.iconContainer}>
+                  <Ionicons
+                    name={item.icon as IconName}
+                    size={22}
+                    color="#007AFF"
+                    style={styles.itemIcon}
+                  />
+                </View>
+                <Text style={styles.itemText}>{item.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
       </View>
-    </SafeAreaView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
-    paddingHorizontal: 16,
-    paddingTop: 20,
+    backgroundColor: "#fff",
   },
-  header: {
+  searchHeader: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    marginBottom: 20,
-    paddingTop: 20,
+    paddingTop: Platform.OS === "ios" ? 12 : 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+    backgroundColor: "#fff",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 1,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
-  searchBarWrapper: {
+  searchInputContainer: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
-    marginLeft: 12,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f1f1f1",
-    borderRadius: 10,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    marginRight: 12,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
   },
   searchInput: {
-    marginLeft: 8,
-    fontSize: 16,
     flex: 1,
+    fontSize: 16,
     color: "#000",
+    height: "100%",
   },
-  helpButton: {
-    marginLeft: 10,
-    padding: 4,
+  searchIcon: {
+    marginRight: 8,
+    color: "#007AFF",
+  },
+  cancelButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: "#007AFF",
+    fontWeight: "500",
+  },
+  content: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  section: {
+    paddingTop: 24,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  lastSection: {
+    borderBottomWidth: 0,
+    paddingBottom: 24,
   },
   sectionTitle: {
-    fontWeight: "bold",
     fontSize: 20,
-    marginTop: 24,
-    marginBottom: 20,
-    paddingLeft: 20,
-  },
-  cardContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    overflow: "hidden",
-    marginBottom: 20,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 16,
+    letterSpacing: -0.5,
   },
   item: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginHorizontal: -8,
+    paddingHorizontal: 8,
+    backgroundColor: "#fff",
   },
-  icon: {
-    marginRight: 20,
+  itemPressed: {
+    backgroundColor: Platform.select({
+      ios: "#F6F6F6",
+      android: "transparent",
+    }),
   },
-  label: {
-    fontSize: 18,
+  itemIcon: {
+    marginRight: 0,
+  },
+  itemText: {
+    fontSize: 17,
     color: "#000",
+    letterSpacing: -0.4,
+    fontWeight: "400",
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
 });
 
-export default SearchPage;
+export default SearchModal;

@@ -10,17 +10,11 @@ class ItemSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-<<<<<<< HEAD
-        fields = ['id', 'name', 'icon']
-=======
+
         fields = ['id', 'name', 'icon']  # Include icon field
->>>>>>> merged-branch
+
 
 class CategorySimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-<<<<<<< HEAD
         fields = ['id', 'name', 'icon'] 
-=======
-        fields = ['id', 'name', 'icon']  # Include icon field
->>>>>>> merged-branch

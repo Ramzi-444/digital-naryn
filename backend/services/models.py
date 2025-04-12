@@ -19,6 +19,7 @@ class MultipleFileField(forms.FileField):
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
+    icon = models.ImageField(upload_to='category_icons/', blank=True, null=True) 
 
     def __str__(self):
         return self.name

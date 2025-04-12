@@ -18,6 +18,7 @@ import {
 import { useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker } from "react-native-maps";
+import { useSearchParams } from "expo-router/build/hooks";
 
 const { width } = Dimensions.get("window");
 
@@ -116,8 +117,24 @@ const ItemPage = () => {
   const fadeAnim = new Animated.Value(1);
   const modalAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef<MapView | null>(null);
-
   const t = translations[language];
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
+  const [item, setItem] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchItem = async () => {
+      try {
+        const response = await fetch(`http://157.230.109.162:8000/api/items/${id}`);
+        const data = await response.json();
+        setItem(data);        
+      } catch (error) {
+        console.error("Error fetching item:", error);
+        
+      }
+    };
+    fetchItem();
+  }, [])
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -271,7 +288,7 @@ const ItemPage = () => {
             </View>
 
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>Bamboo Cafe</Text>
+              <Text style={styles.title}>{item?.name || "noname"}</Text>
               <View style={styles.locationContainer}>
                 <Ionicons name="location" size={16} color="#fff" />
                 <Text style={styles.subtitle}>Kulumbayeva Street, 33</Text>
@@ -408,7 +425,7 @@ const ItemPage = () => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t.photos}</Text>
             <TouchableOpacity
-              onPress={() => router.push("/photos/gallery")}
+              onPress={() => router.push("/photos/id")}
               style={styles.viewAllButton}
             >
               <Text style={styles.viewAllText}>{t.viewAll}</Text>

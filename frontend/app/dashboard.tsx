@@ -107,7 +107,7 @@ const Dashboard = () => {
         style={styles.photoPreview}
         onPress={(e) => {
           e.stopPropagation(); // Prevent triggering the parent onPress
-          router.push(`/photos/gallery/${item.id}`); // Navigate to /photos/gallery/{id}
+          router.push(`/photos/${item.id}`); // Navigate to /photos/gallery/{id}
         }}
         activeOpacity={0.6}
       >

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   ScrollView,
   FlatList,
@@ -16,25 +15,26 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import axios from "axios";
 
-
-const places = new Array(10).fill({
-  name: "Saffran",
-  address: "Kulumbaeva 37, Naryn",
-  phone: "0701610101",
-  logo: require("../assets/branding/saffran-logo.png"), // your own image
-});
-
 const Dashboard = () => {
   interface Category {
     id: number;
     name: string;
     icon?: string;
   }
+
+  interface Item {
+    id: number;
+    name: string;
+    address: string;
+    phone: number;
+    avatar_photo?: string;
+  }
+
   const [categories, setCategories] = useState<Category[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const router = useRouter();
-  const { width } = Dimensions.get("window");
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -42,7 +42,7 @@ const Dashboard = () => {
         const response = await axios.get(
           "http://157.230.109.162:8000/api/categories/"
         );
-        setCategories(response.data); // Assuming the API returns an array of categories
+        setCategories(response.data);
       } catch (error) {
         console.error("Error fetching categories:", error);
       } finally {
@@ -50,7 +50,24 @@ const Dashboard = () => {
       }
     };
 
-    fetchCategories();
+    const fetchItems = async () => {
+      try {
+        const response = await axios.get(
+          "http://157.230.109.162:8000/api/items/"
+        );
+        setItems(response.data);
+      } catch (error) {
+        console.error("Error fetching items:", error);
+      }
+    };
+
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([fetchCategories(), fetchItems()]);
+      setLoading(false);
+    };
+
+    fetchData();
   }, []);
 
   const renderCategoryCard = ({ item }: { item: any }) => (
@@ -70,20 +87,27 @@ const Dashboard = () => {
   const renderPlaceCard = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.placeCard}
-      onPress={() => router.push("/items/1")}
+      onPress={() => router.push(`/items/${item.id}`)} // Navigate to /items/{id}
       activeOpacity={0.7}
     >
-      <Image source={item.logo} style={styles.placeLogo} />
+      {item.avatar_photo ? (
+        <Image
+          source={{ uri: item.avatar_photo }}
+          style={styles.placeLogo}
+        />
+      ) : (
+        <Text>No Avatar</Text>
+      )}
       <View style={styles.placeInfo}>
         <Text style={styles.placeName}>{item.name}</Text>
         <Text style={styles.placeAddress}>{item.address}</Text>
-        <Text style={styles.placePhone}>{item.phone}</Text>
+        <Text style={styles.placePhone}>{item.phone_numbers}</Text>
       </View>
       <TouchableOpacity
         style={styles.photoPreview}
         onPress={(e) => {
-          e.stopPropagation();
-          router.push("/photos/gallery");
+          e.stopPropagation(); // Prevent triggering the parent onPress
+          router.push(`/photos/gallery/${item.id}`); // Navigate to /photos/gallery/{id}
         }}
         activeOpacity={0.6}
       >
@@ -163,7 +187,10 @@ const Dashboard = () => {
               >
                 <View style={styles.card}>
                   {item.icon ? (
-                    <Image source={{ uri: item.icon }} style={styles.iconImage} />
+                    <Image
+                      source={{ uri: item.icon }}
+                      style={styles.iconImage}
+                    />
                   ) : null}
                   <Text style={styles.cardText}>{item.name}</Text>
                 </View>
@@ -178,7 +205,7 @@ const Dashboard = () => {
 
       {/* Scrollable Places List */}
       <FlatList
-        data={places}
+        data={items}
         renderItem={renderPlaceCard}
         keyExtractor={(_, index) => index.toString()}
         contentContainerStyle={styles.scrollContainer}
@@ -278,6 +305,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 8,
     marginRight: 12,
+    resizeMode: "cover", // Ensure the image scales properly
   },
   placeInfo: {
     flex: 1,
@@ -305,6 +333,11 @@ const styles = StyleSheet.create({
   searchtitle: {
     fontSize: 16,
     color: "#7a7a7a",
+  },
+  placeDescription: {
+    fontSize: 12,
+    color: "#555",
+    marginTop: 4,
   },
 });
 

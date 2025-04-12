@@ -19,11 +19,7 @@ class MultipleFileField(forms.FileField):
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
-<<<<<<< HEAD
     icon = models.ImageField(upload_to='category_icons/', blank=True, null=True) 
-=======
-    icon = models.ImageField(upload_to='category_icons/', blank=True, null=True)  # New field for icon
->>>>>>> merged-branch
 
     def __str__(self):
         return self.name

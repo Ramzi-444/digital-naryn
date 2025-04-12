@@ -37,7 +37,8 @@ class Item(models.Model):
     whatsapp_number = models.CharField(max_length=20, blank=True)
     phone_numbers = models.CharField(max_length=255, blank=True)
     avatar_photo = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    photos = models.JSONField(default=list, blank=True) # store multiple paths as json
+    photos = models.JSONField(default=list, blank=True) 
+    instagram = models.TextField(blank=True) 
 
     def __str__(self):
       return self.name

@@ -65,24 +65,38 @@ const Dashboard = () => {
       {/* Static Content */}
       <View>
         {/* Search */}
-        <View style={styles.searchContainer}>
-          <Ionicons
-            name="search"
-            size={20}
-            color="#7a7a7a"
-            style={styles.icon}
-          />
-          <TextInput
-            placeholder="Search"
-            placeholderTextColor="#7a7a7a"
-            style={styles.input}
-            clearButtonMode="always"
-          />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+          }}
+        >
           <TouchableOpacity
-            onPress={() => router.push("/contact")}
-            style={styles.helpButton}
+            onPress={() => router.push("/modals/search")}
+            style={{ flex: 1 }}
           >
-            <Ionicons name="help-circle-outline" size={22} color="#007AFF" />
+            <View style={styles.searchContainer}>
+              <Ionicons
+                name="search"
+                size={20}
+                color="#7a7a7a"
+                style={styles.icon}
+              />
+              <View style={styles.input}>
+                <Text style={styles.searchtitle}>Search</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push("/contact")}
+                style={styles.helpButton}
+              >
+                <Ionicons
+                  name="help-circle-outline"
+                  size={22}
+                  color="#007AFF"
+                />
+              </TouchableOpacity>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -249,6 +263,10 @@ const styles = StyleSheet.create({
   photoPreview: {
     padding: 8,
     marginLeft: 8,
+  },
+  searchtitle: {
+    fontSize: 16,
+    color: "#7a7a7a",
   },
 });
 

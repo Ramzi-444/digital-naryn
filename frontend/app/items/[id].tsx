@@ -466,7 +466,12 @@ const ItemPage = () => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t.photos}</Text>
             <TouchableOpacity
-              onPress={() => router.push(`/photos/${item?.id}`)} // Adjust route as needed
+              onPress={() =>
+                router.push({
+                  pathname: `/photos/${item?.id}`,
+                  params: { photos: item?.photos },
+                })
+              }
               style={styles.viewAllButton}
             >
               <Text style={styles.viewAllText}>{t.viewAll}</Text>

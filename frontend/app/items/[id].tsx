@@ -148,8 +148,8 @@ const ItemPage = () => {
   };
 
   const location = {
-    latitude: 41.4287,
-    longitude: 75.9911,
+    latitude: 41.4281873,
+    longitude: 76.0008164,
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   };

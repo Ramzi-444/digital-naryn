@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,19 +9,22 @@ import {
   Platform,
   StatusBar,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 
-// Define icon types to fix TypeScript errors
 type IconName = keyof typeof Ionicons.glyphMap;
 
 const SearchModal = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [filteredResults, setFilteredResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
-  const recentSearches = ["Hotels", "Restaurants"];
   const popularItems = [
     { name: "Cafes", icon: "cafe" },
     { name: "Restaurants", icon: "restaurant" },
@@ -31,12 +34,65 @@ const SearchModal = () => {
     { name: "Gym", icon: "fitness" },
   ];
 
+  useEffect(() => {
+    // Fetch data from APIs
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [itemsResponse, categoriesResponse] = await Promise.all([
+          fetch("http://157.230.109.162:8000/api/items/"),
+          fetch("http://157.230.109.162:8000/api/categories/"),
+        ]);
+        const itemsData = await itemsResponse.json();
+        const categoriesData = await categoriesResponse.json();
+        setItems(itemsData);
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    // Filter results based on search query
+    if (searchQuery.trim() === "") {
+      setFilteredResults([]);
+    } else {
+      const lowercasedQuery = searchQuery.toLowerCase();
+      const filteredItems = items.filter((item: any) =>
+        item.name.toLowerCase().includes(lowercasedQuery)
+      );
+      const filteredCategories = categories.filter((category: any) =>
+        category.name.toLowerCase().includes(lowercasedQuery)
+      );
+      setFilteredResults([...filteredItems, ...filteredCategories]);
+    }
+  }, [searchQuery, items, categories]);
+
   const clearSearch = () => {
     setSearchQuery("");
+    setFilteredResults([]);
   };
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
+  const handleItemClick = (item: any) => {
+    // Add the clicked item to recent searches
+    setRecentSearches((prev) => {
+      const updatedRecents = [
+        item.name,
+        ...prev.filter((i) => i !== item.name),
+      ];
+      return updatedRecents.slice(0, 5);
+    });
+
+    if (item.category) {
+      router.push(`/app/item/${item.id}`);
+    } else {
+      router.push(`/app/categories/${item.id}`);
+    }
   };
 
   return (
@@ -69,7 +125,7 @@ const SearchModal = () => {
               style={styles.searchInput}
               placeholder="Search..."
               value={searchQuery}
-              onChangeText={handleSearch}
+              onChangeText={setSearchQuery}
               autoFocus
               placeholderTextColor="#A3A3A3"
             />
@@ -97,63 +153,104 @@ const SearchModal = () => {
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Searches</Text>
-            {recentSearches.map((item, index) => (
-              <Pressable
-                key={index}
-                style={({ pressed }) => [
-                  styles.item,
-                  pressed && styles.itemPressed,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
-                android_ripple={{
-                  color: "#E8E8E8",
-                  borderless: false,
-                }}
-                onPress={() => handleSearch(item)}
-              >
-                <View style={styles.iconContainer}>
-                  <Ionicons
-                    name="timer-outline"
-                    size={22}
-                    color="#007AFF"
-                    style={styles.itemIcon}
-                  />
-                </View>
-                <Text style={styles.itemText}>{item}</Text>
-              </Pressable>
-            ))}
-          </View>
+          {loading ? (
+            <ActivityIndicator size="large" color="#007AFF" />
+          ) : searchQuery.trim() === "" ? (
+            <ScrollView
+              style={styles.content}
+              showsVerticalScrollIndicator={false}
+              bounces={true}
+            >
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Recent Searches</Text>
+                {recentSearches.map((item, index) => (
+                  <Pressable
+                    key={`${item}-${index}`} // Ensure a unique key
+                    style={({ pressed }) => [
+                      styles.item,
+                      pressed && styles.itemPressed,
+                      { opacity: pressed ? 0.7 : 1 },
+                    ]}
+                    android_ripple={{
+                      color: "#E8E8E8",
+                      borderless: false,
+                    }}
+                    onPress={() => handleItemClick(item)}
+                  >
+                    <View style={styles.iconContainer}>
+                      <Ionicons
+                        name="timer-outline"
+                        size={22}
+                        color="#007AFF"
+                        style={styles.itemIcon}
+                      />
+                    </View>
+                    <Text style={styles.itemText}>{item}</Text>
+                  </Pressable>
+                ))}
+              </View>
 
-          <View style={[styles.section, styles.lastSection]}>
-            <Text style={styles.sectionTitle}>Popular</Text>
-            {popularItems.map((item, index) => (
-              <Pressable
-                key={index}
-                style={({ pressed }) => [
-                  styles.item,
-                  pressed && styles.itemPressed,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
-                android_ripple={{
-                  color: "#E8E8E8",
-                  borderless: false,
-                }}
-                onPress={() => handleSearch(item.name)}
-              >
-                <View style={styles.iconContainer}>
-                  <Ionicons
-                    name={item.icon as IconName}
-                    size={22}
-                    color="#007AFF"
-                    style={styles.itemIcon}
-                  />
-                </View>
-                <Text style={styles.itemText}>{item.name}</Text>
-              </Pressable>
-            ))}
-          </View>
+              <View style={[styles.section, styles.lastSection]}>
+                <Text style={styles.sectionTitle}>Popular</Text>
+                {popularItems.map((item, index) => (
+                  <Pressable
+                    key={`${item.name}-${index}`} // Ensure a unique key
+                    style={({ pressed }) => [
+                      styles.item,
+                      pressed && styles.itemPressed,
+                      { opacity: pressed ? 0.7 : 1 },
+                    ]}
+                    android_ripple={{
+                      color: "#E8E8E8",
+                      borderless: false,
+                    }}
+                    onPress={() => handleItemClick(item)}
+                  >
+                    <View style={styles.iconContainer}>
+                      <Ionicons
+                        name={item.icon as IconName}
+                        size={22}
+                        color="#007AFF"
+                        style={styles.itemIcon}
+                      />
+                    </View>
+                    <Text style={styles.itemText}>{item.name}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          ) : filteredResults.length > 0 ? (
+            filteredResults.map((result: any, index: number) => (
+              <View style={{ marginHorizontal: 16 }} key={`${result.name}-${index}`}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.item,
+                    pressed && styles.itemPressed,
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}
+                  android_ripple={{
+                    color: "#E8E8E8",
+                    borderless: false,
+                  }}
+                  onPress={() => handleItemClick(result)}
+                >
+                  <View style={styles.iconContainer}>
+                    <Ionicons
+                      name="search"
+                      size={22}
+                      color="#007AFF"
+                      style={styles.itemIcon}
+                    />
+                  </View>
+                  <Text style={styles.itemText}>{result.name}</Text>
+                </Pressable>
+              </View>
+            ))
+          ) : (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>No results found</Text>
+            </View>
+          )}
         </ScrollView>
       </View>
     </>
@@ -227,10 +324,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
   },
-  lastSection: {
-    borderBottomWidth: 0,
-    paddingBottom: 24,
-  },
+
   sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
@@ -261,6 +355,8 @@ const styles = StyleSheet.create({
     color: "#000",
     letterSpacing: -0.4,
     fontWeight: "400",
+    flexWrap: "wrap", // Ensures text wraps to the next line
+    maxWidth: "85%", // Prevents text from exceeding the screen width
   },
   iconContainer: {
     width: 36,
@@ -270,6 +366,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
+  },
+  lastSection: {
+    borderBottomWidth: 0,
+    paddingBottom: 24,
   },
 });
 

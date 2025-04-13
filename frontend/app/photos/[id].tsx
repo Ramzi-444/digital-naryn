@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,11 @@ import {
   SafeAreaView,
   Animated,
 } from "react-native";
-import { useRouter, Stack } from "expo-router";
+import { useRouter, Stack, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-const photos = [
+// This will be replaced with data from backend
+const fallbackPhotos = [
   require("../../assets/places/bamboo-cafe/bamboo-cafe.jpg"),
   require("../../assets/places/bamboo-cafe/cafe-1.jpg"),
   require("../../assets/places/bamboo-cafe/cafe-2.jpg"),
@@ -23,8 +24,32 @@ const photos = [
 
 const GalleryPage = () => {
   const router = useRouter();
+  const { id } = useLocalSearchParams();
   const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [item, setItem] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchItem = async () => {
+      if (!id) return;
+
+      try {
+        setLoading(true);
+        const response = await fetch(
+          `http://157.230.109.162:8000/api/items/${id}`
+        );
+        const data = await response.json();
+        setItem(data);
+        console.log("Fetched photos data:", data?.photos);
+      } catch (error) {
+        console.error("Error fetching item data for photos:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchItem();
+  }, [id]);
 
   const closePhoto = () => {
     Animated.spring(fadeAnim, {
@@ -55,7 +80,35 @@ const GalleryPage = () => {
     }
   };
 
-  const renderPhoto = ({ item, index }: { item: any; index: number }) => (
+  const renderPhoto = ({
+    item: photo,
+    index,
+  }: {
+    item: string;
+    index: number;
+  }) => (
+    <TouchableOpacity
+      style={styles.photoContainer}
+      onPress={() => openPhoto(index)}
+      activeOpacity={0.9}
+      delayPressIn={50}
+    >
+      <Image
+        source={{ uri: `http://157.230.109.162:8000/media/${photo}` }}
+        style={styles.photoThumbnail}
+      />
+      <View style={styles.photoOverlay} />
+    </TouchableOpacity>
+  );
+
+  // Render a fallback photo if needed
+  const renderFallbackPhoto = ({
+    item,
+    index,
+  }: {
+    item: any;
+    index: number;
+  }) => (
     <TouchableOpacity
       style={styles.photoContainer}
       onPress={() => openPhoto(index)}
@@ -81,21 +134,38 @@ const GalleryPage = () => {
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gallery</Text>
+        <Text style={styles.headerTitle}>{item?.name || "Gallery"}</Text>
         <View style={styles.placeholder} />
       </View>
 
       {/* Photos List */}
-      <FlatList
-        data={photos}
-        renderItem={renderPhoto}
-        keyExtractor={(_, index) => index.toString()}
-        contentContainerStyle={styles.photosList}
-        showsVerticalScrollIndicator={false}
-        bounces={true}
-        overScrollMode="never"
-        decelerationRate="normal"
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading photos...</Text>
+        </View>
+      ) : item?.photos && item.photos.length > 0 ? (
+        <FlatList
+          data={item.photos}
+          renderItem={renderPhoto}
+          keyExtractor={(_, index) => index.toString()}
+          contentContainerStyle={styles.photosList}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          overScrollMode="never"
+          decelerationRate="normal"
+        />
+      ) : (
+        <FlatList
+          data={fallbackPhotos}
+          renderItem={renderFallbackPhoto}
+          keyExtractor={(_, index) => index.toString()}
+          contentContainerStyle={styles.photosList}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          overScrollMode="never"
+          decelerationRate="normal"
+        />
+      )}
 
       {/* Full Screen Photo Modal */}
       <Modal
@@ -136,11 +206,21 @@ const GalleryPage = () => {
               }}
               style={styles.modalImageContainer}
             >
-              <Image
-                source={photos[selectedPhoto]}
-                style={styles.fullScreenPhoto}
-                resizeMode="contain"
-              />
+              {item?.photos && item.photos.length > 0 ? (
+                <Image
+                  source={{
+                    uri: `http://157.230.109.162:8000/media/${item.photos[selectedPhoto]}`,
+                  }}
+                  style={styles.fullScreenPhoto}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Image
+                  source={fallbackPhotos[selectedPhoto]}
+                  style={styles.fullScreenPhoto}
+                  resizeMode="contain"
+                />
+              )}
             </TouchableOpacity>
           )}
         </Animated.View>
@@ -239,6 +319,15 @@ const styles = StyleSheet.create({
     width: width,
     height: height * 0.8,
     resizeMode: "contain",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: "600",
   },
 });
 

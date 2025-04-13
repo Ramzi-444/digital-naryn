@@ -15,6 +15,7 @@ import {
   Platform,
   Alert,
   AppState,
+  Clipboard,
 } from "react-native";
 import { useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -141,16 +142,7 @@ const ItemPage = () => {
           `http://157.230.109.162:8000/api/items/${id}`
         );
         const data = await response.json();
-        console.log("Fetched Item:", data); // Debugging
-        setItem(data);
-
-        // Update header images if photos exist in the response
-        if (data?.photos && data.photos.length > 0) {
-          const backendImages = data.photos.map((photo: string) => {
-            return { uri: `http://157.230.109.162:8000/media/${photo}` };
-          });
-          setHeaderImages(backendImages);
-        }
+        setItem(data); // Ensure this updates the state correctly
       } catch (error) {
         console.error("Error fetching item:", error);
       }
@@ -237,12 +229,23 @@ const ItemPage = () => {
   };
 
   const handleCopyNumber = () => {
-    // Implement copy to clipboard
+    if (item?.phone_numbers) {
+      Clipboard.setString(item.phone_numbers);
+      Alert.alert("Success", "Phone number copied to clipboard");
+    } else {
+      Alert.alert("Error", "No phone number available");
+    }
     setShowCallOptions(false);
   };
 
   const handleWhatsApp = () => {
-    Linking.openURL("whatsapp://send?phone=+1234567890");
+    const whatsappNumber = item?.whatsapp_number || item?.phone_numbers;
+    if (whatsappNumber) {
+      const formattedNumber = whatsappNumber.replace(/[^\d+]/g, ""); // Format number
+      Linking.openURL(`whatsapp://send?phone=${formattedNumber}`);
+    } else {
+      Alert.alert("Error", "No WhatsApp number available");
+    }
     setShowCallOptions(false);
   };
 
@@ -669,10 +672,15 @@ const ItemPage = () => {
                 <View style={styles.modalIndicator} />
               </View>
 
+              {/* Call Now Option */}
               <TouchableOpacity
                 style={styles.modalOption}
                 onPress={() => {
-                  Linking.openURL("tel:+1234567890");
+                  if (item?.phone_numbers) {
+                    Linking.openURL(`tel:${item.phone_numbers}`);
+                  } else {
+                    Alert.alert("Error", "No phone number available");
+                  }
                   closeCallOptions();
                 }}
               >
@@ -680,6 +688,7 @@ const ItemPage = () => {
                 <Text style={styles.modalOptionText}>{t.callNow}</Text>
               </TouchableOpacity>
 
+              {/* Copy Number Option */}
               <TouchableOpacity
                 style={styles.modalOption}
                 onPress={() => {
@@ -691,6 +700,7 @@ const ItemPage = () => {
                 <Text style={styles.modalOptionText}>{t.copyNumber}</Text>
               </TouchableOpacity>
 
+              {/* Open in WhatsApp Option */}
               <TouchableOpacity
                 style={[styles.modalOption, styles.lastOption]}
                 onPress={() => {

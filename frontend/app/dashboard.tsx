@@ -90,14 +90,28 @@ const Dashboard = () => {
       onPress={() => router.push(`/items/${item.id}`)} // Navigate to /items/{id}
       activeOpacity={0.7}
     >
-      {item.avatar_photo ? (
-        <Image
-          source={{ uri: item.avatar_photo }}
-          style={styles.placeLogo}
-        />
-      ) : (
-        <Text>No Avatar</Text>
-      )}
+      <TouchableOpacity
+        onPress={(e) => {
+          e.stopPropagation(); // Prevent triggering the parent onPress
+          router.push({
+            pathname: `/photos/${item.id}`,
+            params: { photos: item.photos || [] }, // Pass photos to the gallery
+          });
+        }}
+        activeOpacity={0.8}
+      >
+        {item.avatar_photo ? (
+          <Image
+            source={{ uri: item.avatar_photo }}
+            style={styles.placeLogo}
+          />
+        ) : (
+          <View style={styles.placeholder}>
+            <Ionicons name="images-outline" size={32} color="#ccc" />
+            <Text style={styles.placeholderText}>View Photos</Text>
+          </View>
+        )}
+      </TouchableOpacity>
       <View style={styles.placeInfo}>
         <Text style={styles.placeName}>{item.name}</Text>
         <Text style={styles.placeAddress}>{item.address}</Text>
@@ -337,6 +351,20 @@ const styles = StyleSheet.create({
   placeDescription: {
     fontSize: 12,
     color: "#555",
+    marginTop: 4,
+  },
+  placeholder: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+    marginRight: 12,
+  },
+  placeholderText: {
+    fontSize: 10,
+    color: "#aaa",
     marginTop: 4,
   },
 });

@@ -142,13 +142,24 @@ const ItemPage = () => {
           `http://157.230.109.162:8000/api/items/${id}`
         );
         const data = await response.json();
-        setItem(data); // Ensure this updates the state correctly
+        setItem(data); // Update item state
+
+        // Update header images with photos from the backend
+        if (data?.photos && data.photos.length > 0) {
+          const backendImages = data.photos.map((photo: string) => ({
+            uri: `http://157.230.109.162:8000/media/${photo}`,
+          }));
+          setHeaderImages(backendImages); // Set header images
+        } else {
+          setHeaderImages(fallbackHeaderImages); // Use fallback images if no photos
+        }
       } catch (error) {
         console.error("Error fetching item:", error);
       }
     };
+
     fetchItem();
-  }, []);
+  }, [id]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -352,27 +363,14 @@ const ItemPage = () => {
       fetch(`http://157.230.109.162:8000/api/items/${id}`)
         .then((response) => response.json())
         .then((data) => {
-          setItem(data);
+          setItem(data); // Update item state
           if (data?.photos && data.photos.length > 0) {
-            const backendImages = data.photos.map((photo: string) => {
-              return { uri: `http://157.230.109.162:8000/media/${photo}` };
-            });
-            setHeaderImages(backendImages);
-          }
-
-          // Re-center map if available
-          if (mapRef.current && data?.latitude && data?.longitude) {
-            setTimeout(() => {
-              mapRef.current?.animateToRegion(
-                {
-                  latitude: data.latitude,
-                  longitude: data.longitude,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                },
-                300
-              );
-            }, 500);
+            const backendImages = data.photos.map((photo: string) => ({
+              uri: `http://157.230.109.162:8000/media/${photo}`,
+            }));
+            setHeaderImages(backendImages); // Update header images
+          } else {
+            setHeaderImages(fallbackHeaderImages); // Use fallback images
           }
         })
         .catch((error) => console.error("Error refreshing item:", error));

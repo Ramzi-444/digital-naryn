@@ -14,14 +14,17 @@ import {
   Modal,
   Platform,
   Alert,
+  AppState,
 } from "react-native";
 import { useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker } from "react-native-maps";
+import { useSearchParams } from "expo-router/build/hooks";
 
 const { width } = Dimensions.get("window");
 
-const headerImages = [
+// Fallback header images in case there are no photos from the backend
+const fallbackHeaderImages = [
   require("../../assets/places/bamboo-cafe/bamboo-cafe.jpg"),
   require("../../assets/places/bamboo-cafe/cafe-1.jpg"),
   require("../../assets/places/bamboo-cafe/cafe-2.jpg"),
@@ -108,6 +111,14 @@ const socialLinks = {
   instagram: "bamboo_naryn",
 };
 
+const normalizeWorkingHours = (workingHours: Record<string, string>) => {
+  const normalized: Record<string, string> = {};
+  Object.entries(workingHours).forEach(([key, value]) => {
+    normalized[key.toLowerCase()] = value;
+  });
+  return normalized;
+};
+
 const ItemPage = () => {
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -116,11 +127,42 @@ const ItemPage = () => {
   const fadeAnim = new Animated.Value(1);
   const modalAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef<MapView | null>(null);
-
   const t = translations[language];
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
+  const [item, setItem] = useState<any>(null);
+  const [headerImages, setHeaderImages] = useState<any[]>(fallbackHeaderImages);
+  const appState = useRef(AppState.currentState);
+
+  useEffect(() => {
+    const fetchItem = async () => {
+      try {
+        const response = await fetch(
+          `http://157.230.109.162:8000/api/items/${id}`
+        );
+        const data = await response.json();
+        console.log("Fetched Item:", data); // Debugging
+        setItem(data);
+
+        // Update header images if photos exist in the response
+        if (data?.photos && data.photos.length > 0) {
+          const backendImages = data.photos.map((photo: string) => {
+            return { uri: `http://157.230.109.162:8000/media/${photo}` };
+          });
+          setHeaderImages(backendImages);
+        }
+      } catch (error) {
+        console.error("Error fetching item:", error);
+      }
+    };
+    fetchItem();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
+      // Only run transition if there are images
+      if (headerImages.length === 0) return;
+
       fadeAnim.setValue(1);
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -128,28 +170,49 @@ const ItemPage = () => {
         useNativeDriver: true,
       }).start(() => {
         setCurrentImageIndex((prev) =>
-          prev === headerImages.length - 1 ? 0 : prev + 1
+          prev >= headerImages.length - 1 ? 0 : prev + 1
         );
         fadeAnim.setValue(1);
       });
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [headerImages]);
 
-  const workingHours = {
-    monday: "11:00 - 23:00",
-    tuesday: "11:00 - 23:00",
-    wednesday: "11:00 - 23:00",
-    thursday: "11:00 - 23:00",
-    friday: "11:00 - 23:00",
-    saturday: "11:00 - 23:00",
-    sunday: "11:00 - 23:00",
+  // Reset currentImageIndex if it exceeds array bounds
+  useEffect(() => {
+    if (currentImageIndex >= headerImages.length && headerImages.length > 0) {
+      setCurrentImageIndex(0);
+    }
+  }, [headerImages, currentImageIndex]);
+
+  const defaultWorkingHours = {
+    monday: "Closed",
+    tuesday: "Closed",
+    wednesday: "Closed",
+    thursday: "Closed",
+    friday: "Closed",
+    saturday: "Closed",
+    sunday: "Closed",
   };
 
+  const workingHours = item?.working_hours
+    ? normalizeWorkingHours(item.working_hours)
+    : defaultWorkingHours;
+
+  const daysOfWeek = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+  ];
+
   const location = {
-    latitude: 41.4287,
-    longitude: 75.9911,
+    latitude: item?.latitude || 41.4281873,
+    longitude: item?.longitude || 76.0008164,
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   };
@@ -184,13 +247,19 @@ const ItemPage = () => {
   };
 
   // Add function to check if currently open
-  const isCurrentlyOpen = (hours: string) => {
+  const isCurrentlyOpen = (hours: string): boolean => {
+    if (!hours || hours === "Closed" || !hours.includes("-")) {
+      return false; // Return false if hours are invalid or "Closed"
+    }
+
     const now = new Date();
-    const [start, end] = hours.split(" - ");
-    const [startHour] = start.split(":").map(Number);
-    const [endHour] = end.split(":").map(Number);
-    const currentHour = now.getHours();
-    return currentHour >= startHour && currentHour < endHour;
+    const [start, end] = hours.split("-").map((time) => {
+      const [hour, minute] = time.trim().split(":").map(Number);
+      return new Date().setHours(hour, minute, 0, 0);
+    });
+
+    const currentTime = now.getTime();
+    return currentTime >= start && currentTime < end;
   };
 
   // Get current day
@@ -210,19 +279,100 @@ const ItemPage = () => {
   const currentDay = getCurrentDay();
 
   const openInMaps = () => {
-    const scheme = Platform.select({
-      ios: "maps:0,0?q=",
-      android: "geo:0,0?q=",
-    });
-    const latLng = `${location.latitude},${location.longitude}`;
-    const label = "Bamboo Cafe";
-    const url = Platform.select({
-      ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`,
+    try {
+      const scheme = Platform.select({
+        ios: "maps:0,0?q=",
+        android: "geo:0,0?q=",
+      });
+      const latLng = `${location.latitude},${location.longitude}`;
+      const label = item?.name || "Location";
+      const url = Platform.select({
+        ios: `${scheme}${label}@${latLng}`,
+        android: `${scheme}${latLng}(${label})`,
+      });
+
+      if (url) {
+        console.log("Opening maps with URL:", url);
+        Linking.openURL(url).catch((err) => {
+          console.error("Error opening maps:", err);
+          Alert.alert("Error", "Could not open maps application");
+        });
+      }
+    } catch (error) {
+      console.error("Error in openInMaps:", error);
+      Alert.alert("Error", "Could not open maps application");
+    }
+  };
+
+  // Add this effect to center map on item location when data loads
+  useEffect(() => {
+    if (item?.latitude && item?.longitude && mapRef.current) {
+      // Small delay to ensure map is fully loaded
+      setTimeout(() => {
+        const itemLocation = {
+          latitude: item.latitude,
+          longitude: item.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        mapRef.current?.animateToRegion(itemLocation, 300);
+      }, 500);
+    }
+  }, [item]);
+
+  useEffect(() => {
+    // Add AppState listener to handle app coming back from background
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        console.log("App has come to the foreground!");
+
+        // Use the refreshContent function instead of just refreshing the map
+        refreshContent();
+      }
+
+      appState.current = nextAppState;
     });
 
-    if (url) {
-      Linking.openURL(url);
+    return () => {
+      subscription.remove();
+    };
+  }, [id]);
+
+  // Add this function to refresh content when app has issues
+  const refreshContent = () => {
+    console.log("Refreshing content");
+    if (id) {
+      // Re-fetch item data
+      fetch(`http://157.230.109.162:8000/api/items/${id}`)
+        .then((response) => response.json())
+        .then((data) => {
+          setItem(data);
+          if (data?.photos && data.photos.length > 0) {
+            const backendImages = data.photos.map((photo: string) => {
+              return { uri: `http://157.230.109.162:8000/media/${photo}` };
+            });
+            setHeaderImages(backendImages);
+          }
+
+          // Re-center map if available
+          if (mapRef.current && data?.latitude && data?.longitude) {
+            setTimeout(() => {
+              mapRef.current?.animateToRegion(
+                {
+                  latitude: data.latitude,
+                  longitude: data.longitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                },
+                300
+              );
+            }, 500);
+          }
+        })
+        .catch((error) => console.error("Error refreshing item:", error));
     }
   };
 
@@ -239,10 +389,17 @@ const ItemPage = () => {
       >
         {/* Header Image */}
         <View style={styles.headerContainer}>
-          <Animated.Image
-            source={headerImages[currentImageIndex]}
-            style={[styles.headerImage, { opacity: fadeAnim }]}
-          />
+          {headerImages.length > 0 &&
+          currentImageIndex < headerImages.length ? (
+            <Animated.Image
+              source={headerImages[currentImageIndex]}
+              style={[styles.headerImage, { opacity: fadeAnim }]}
+            />
+          ) : (
+            <View
+              style={[styles.headerImage, { backgroundColor: "#e0e0e0" }]}
+            />
+          )}
           <SafeAreaView style={styles.headerOverlay}>
             <View style={styles.topHeader}>
               <TouchableOpacity
@@ -271,10 +428,10 @@ const ItemPage = () => {
             </View>
 
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>Bamboo Cafe</Text>
+              <Text style={styles.title}>{item?.name || "noname"}</Text>
               <View style={styles.locationContainer}>
                 <Ionicons name="location" size={16} color="#fff" />
-                <Text style={styles.subtitle}>Kulumbayeva Street, 33</Text>
+                <Text style={styles.subtitle}>{item?.address || "noname"}</Text>
               </View>
             </View>
           </SafeAreaView>
@@ -283,7 +440,9 @@ const ItemPage = () => {
         {/* Overview Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.overview}</Text>
-          <Text style={styles.description}>{t.description}</Text>
+          <Text style={styles.description}>
+            {item?.description || "noname"}
+          </Text>
 
           <View style={styles.amenitiesGrid}>
             <View style={styles.amenityBox}>
@@ -304,10 +463,8 @@ const ItemPage = () => {
             <TouchableOpacity
               style={[styles.amenityBox, styles.instagramBox]}
               onPress={() => {
-                if (socialLinks.instagram) {
-                  Linking.openURL(
-                    `https://instagram.com/${socialLinks.instagram}`
-                  );
+                if (item?.instagram) {
+                  Linking.openURL(`https://instagram.com/${item.instagram}`);
                 } else {
                   Alert.alert(t.noInstagram);
                 }
@@ -343,25 +500,42 @@ const ItemPage = () => {
           <View style={styles.mapContainer}>
             <MapView
               style={styles.map}
-              initialRegion={location}
+              initialRegion={{
+                latitude: item?.latitude || location.latitude,
+                longitude: item?.longitude || location.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }}
               scrollEnabled={true}
               zoomEnabled={true}
               showsUserLocation={true}
               ref={mapRef}
+              onMapReady={() => console.log("Map is ready")}
+              onMapLoaded={() => console.log("Map has loaded")}
             >
               <Marker
                 coordinate={{
-                  latitude: location.latitude,
-                  longitude: location.longitude,
+                  latitude: item?.latitude || location.latitude,
+                  longitude: item?.longitude || location.longitude,
                 }}
-                title="Bamboo Cafe"
-                description="Kulumbayeva Street, 33"
+                title={item?.name || "Location"}
+                description={item?.address || ""}
               />
             </MapView>
             <TouchableOpacity
               style={styles.recenterButton}
               onPress={() => {
-                mapRef.current?.animateToRegion(location, 300);
+                if (item?.latitude && item?.longitude) {
+                  const location = {
+                    latitude: item.latitude,
+                    longitude: item.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  };
+                  mapRef.current?.animateToRegion(location, 300);
+                } else {
+                  Alert.alert("Location not available");
+                }
               }}
             >
               <Ionicons name="location" size={24} color="#007AFF" />
@@ -372,8 +546,10 @@ const ItemPage = () => {
         {/* Working Hours Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.workingHours}</Text>
-          {Object.entries(workingHours).map(([day, hours]) => {
-            const isToday = day === currentDay;
+          {daysOfWeek.map((day) => {
+            const hours =
+              workingHours[day as keyof typeof workingHours] || "Closed";
+            const isToday = day === currentDay.toLowerCase();
             const isOpen = isToday && isCurrentlyOpen(hours);
 
             return (
@@ -408,7 +584,12 @@ const ItemPage = () => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t.photos}</Text>
             <TouchableOpacity
-              onPress={() => router.push("/photos/gallery")}
+              onPress={() =>
+                router.push({
+                  pathname: `/photos/${item?.id}`,
+                  params: { photos: item?.photos },
+                })
+              }
               style={styles.viewAllButton}
             >
               <Text style={styles.viewAllText}>{t.viewAll}</Text>
@@ -424,15 +605,26 @@ const ItemPage = () => {
             snapToAlignment="center"
             contentContainerStyle={{ paddingHorizontal: 16 }}
           >
-            {headerImages.map((photo, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => router.push("/photos/gallery")}
-                activeOpacity={0.8}
-              >
-                <Image source={photo} style={styles.photoItem} />
-              </TouchableOpacity>
-            ))}
+            {item?.photos && item.photos.length > 0 ? (
+              item.photos.map((photo: string, index: number) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => router.push(`/photos/${item.id}`)} // Adjust route as needed
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={{
+                      uri: `http://157.230.109.162:8000/media/${photo}`,
+                    }}
+                    style={styles.photoItem}
+                  />
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={{ color: "#666", fontSize: 14 }}>
+                No photos available
+              </Text>
+            )}
           </ScrollView>
         </View>
       </ScrollView>

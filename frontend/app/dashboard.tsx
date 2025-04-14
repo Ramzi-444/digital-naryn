@@ -172,7 +172,7 @@ const Dashboard = () => {
         style={styles.photoPreview}
         onPress={(e) => {
           e.stopPropagation(); // Prevent triggering the parent onPress
-          router.push(`/photos/${item.id}`); 
+          router.push(`/photos/${item.id}`);
         }}
         activeOpacity={0.6}
       >
@@ -180,26 +180,6 @@ const Dashboard = () => {
       </TouchableOpacity>
     </TouchableOpacity>
   );
-
-  const clearAllCaches = async () => {
-    try {
-      const keys = await AsyncStorage.getAllKeys();
-
-      const cacheKeys = keys.filter(
-        (key) => key.startsWith("item:") || key.startsWith("photos:")
-      );
-
-      if (cacheKeys.length > 0) {
-        await AsyncStorage.multiRemove(cacheKeys);
-        alert("Cache cleared successfully!");
-      } else {
-        alert("No cache to clear");
-      }
-    } catch (error) {
-      console.error("Error clearing cache:", error);
-      alert("Failed to clear cache");
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -309,13 +289,6 @@ const Dashboard = () => {
           No places found within 200 meters.
         </Text>
       )}
-
-      <TouchableOpacity
-        style={styles.clearCacheButton}
-        onPress={clearAllCaches}
-      >
-        <Text style={styles.clearCacheButtonText}>Clear Cache</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -453,19 +426,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#aaa",
     marginTop: 4,
-  },
-  clearCacheButton: {
-    position: "absolute",
-    bottom: 20,
-    right: 20,
-    backgroundColor: "#ff3b30",
-    padding: 10,
-    borderRadius: 8,
-    zIndex: 999,
-  },
-  clearCacheButtonText: {
-    color: "white",
-    fontWeight: "bold",
   },
 });
 

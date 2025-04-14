@@ -16,16 +16,8 @@ import { useRouter, Stack, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// This will be replaced with data from backend
-const fallbackPhotos = [
-  require("../../assets/places/bamboo-cafe/bamboo-cafe.jpg"),
-  require("../../assets/places/bamboo-cafe/cafe-1.jpg"),
-  require("../../assets/places/bamboo-cafe/cafe-2.jpg"),
-  // Add more photos here
-];
-
 // Simple cache for photos
-const photoCache = new Map(); // Uncommented for production use
+const photoCache = new Map();
 
 const GalleryPage = () => {
   const router = useRouter();
@@ -39,20 +31,15 @@ const GalleryPage = () => {
     const fetchItem = async () => {
       if (!id) return;
 
-      try {
-        setLoading(true);
-        const response = await fetch(
-          `http://157.230.109.162:8000/api/items/${id}`
-        );
-        const data = await response.json();
-        setItem(data);
-      } catch (error) {
-        console.error("Error fetching item data for photos:", error);
-      } finally {
+      // Try to get from in-memory cache first
+      const cacheKey = `photos:${id}`;
+      if (photoCache.has(cacheKey)) {
+        setItem(photoCache.get(cacheKey));
         setLoading(false);
         return;
       }
 
+      // Try to get from storage cache
       try {
         const cachedItem = await AsyncStorage.getItem(cacheKey);
         if (cachedItem) {
@@ -65,13 +52,12 @@ const GalleryPage = () => {
           refreshData(false);
           return;
         }
-
-        // No cache, load with loading state
-        refreshData(true);
       } catch (error) {
-        console.error("Error loading cached photos:", error);
-        refreshData(true);
+        console.error("Error reading from cache:", error);
       }
+
+      // No cache, load with loading state
+      refreshData(true);
     };
 
     fetchItem();
@@ -90,18 +76,20 @@ const GalleryPage = () => {
       );
       const data = await response.json();
 
+      // Update state
+      setItem(data);
+
       // Save to cache
       const cacheKey = `photos:${id}`;
       photoCache.set(cacheKey, data);
+
       try {
         await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
       } catch (error) {
-        console.error("Error caching photo data:", error);
+        console.error("Error saving to cache:", error);
       }
-
-      setItem(data);
     } catch (error) {
-      console.error("Error fetching item data for photos:", error);
+      console.error("Error fetching item data:", error);
     } finally {
       if (showLoading) {
         setLoading(false);
@@ -159,25 +147,6 @@ const GalleryPage = () => {
     </TouchableOpacity>
   );
 
-  // Render a fallback photo if needed
-  const renderFallbackPhoto = ({
-    item,
-    index,
-  }: {
-    item: any;
-    index: number;
-  }) => (
-    <TouchableOpacity
-      style={styles.photoContainer}
-      onPress={() => openPhoto(index)}
-      activeOpacity={0.9}
-      delayPressIn={50}
-    >
-      <Image source={item} style={styles.photoThumbnail} />
-      <View style={styles.photoOverlay} />
-    </TouchableOpacity>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -213,16 +182,10 @@ const GalleryPage = () => {
           decelerationRate="normal"
         />
       ) : (
-        <FlatList
-          data={fallbackPhotos}
-          renderItem={renderFallbackPhoto}
-          keyExtractor={(_, index) => index.toString()}
-          contentContainerStyle={styles.photosList}
-          showsVerticalScrollIndicator={false}
-          bounces={true}
-          overScrollMode="never"
-          decelerationRate="normal"
-        />
+        <View style={styles.emptyContainer}>
+          <Ionicons name="images-outline" size={64} color="#ccc" />
+          <Text style={styles.emptyText}>No photos available</Text>
+        </View>
       )}
 
       {/* Full Screen Photo Modal */}
@@ -256,7 +219,7 @@ const GalleryPage = () => {
             <Ionicons name="close" size={24} color="#fff" />
           </TouchableOpacity>
 
-          {selectedPhoto !== null && (
+          {selectedPhoto !== null && item?.photos && item.photos.length > 0 && (
             <TouchableOpacity
               activeOpacity={1}
               onPress={(e) => {
@@ -264,21 +227,13 @@ const GalleryPage = () => {
               }}
               style={styles.modalImageContainer}
             >
-              {item?.photos && item.photos.length > 0 ? (
-                <Image
-                  source={{
-                    uri: `http://157.230.109.162:8000/media/${item.photos[selectedPhoto]}`,
-                  }}
-                  style={styles.fullScreenPhoto}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Image
-                  source={fallbackPhotos[selectedPhoto]}
-                  style={styles.fullScreenPhoto}
-                  resizeMode="contain"
-                />
-              )}
+              <Image
+                source={{
+                  uri: `http://157.230.109.162:8000/media/${item.photos[selectedPhoto]}`,
+                }}
+                style={styles.fullScreenPhoto}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
           )}
         </Animated.View>
@@ -389,6 +344,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     marginTop: 12,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: "#666",
+    marginTop: 16,
+    textAlign: "center",
   },
 });
 

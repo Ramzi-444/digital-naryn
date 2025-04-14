@@ -8,6 +8,8 @@ __pycache__/
 *.db
 node_modules/
 .vscode/
+.expo
+
 
 # === Python / Django ===
 backend/env/                  # virtual environment

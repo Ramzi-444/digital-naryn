@@ -9,14 +9,23 @@ import {
   ScrollView,
   Image,
   TextInput,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, Stack } from "expo-router";
+
+const { width } = Dimensions.get("window");
 
 export default function ContactPage() {
   const router = useRouter();
   const [searchText, setSearchText] = useState("");
   const inputRef = useRef<TextInput>(null);
+
+  const openLink = (url: string) => {
+    Linking.openURL(url).catch((err) =>
+      console.error("Failed to open URL:", err)
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -62,20 +71,22 @@ export default function ContactPage() {
           If you have any question we are happy to help
         </Text>
 
+        {/* Phone Number */}
         <View style={styles.contactItem}>
           <TouchableOpacity
             style={styles.iconButton}
-            onPress={() => Linking.openURL("tel:+9929379055444")}
+            onPress={() => openLink("tel:+996555214529")}
           >
             <Ionicons name="call" size={25} color="white" />
           </TouchableOpacity>
-          <Text style={styles.infoText}>(+992) 93 790 55 44</Text>
+          <Text style={styles.infoText}>+996 555 214 529</Text>
         </View>
 
+        {/* Email */}
         <View style={styles.contactItem}>
           <TouchableOpacity
             style={styles.iconButton}
-            onPress={() => Linking.openURL("mailto:sophomore354@gmail.com")}
+            onPress={() => openLink("mailto:sophomore354@gmail.com")}
           >
             <Ionicons name="mail" size={25} color="white" />
           </TouchableOpacity>
@@ -84,14 +95,22 @@ export default function ContactPage() {
 
         <Text style={styles.connect}>Get Connected</Text>
 
+        {/* Social Media */}
         <View style={styles.socialIcons}>
-          <TouchableOpacity>
+          {/* Instagram */}
+          <TouchableOpacity
+            onPress={() => openLink("https://instagram.com/a.ramzi_444")}
+          >
             <Image
               source={require("../assets/social/instagram.png")}
               style={styles.icon}
             />
           </TouchableOpacity>
-          <TouchableOpacity>
+
+          {/* WhatsApp */}
+          <TouchableOpacity
+            onPress={() => openLink("whatsapp://send?phone=+996555214529")}
+          >
             <Image
               source={require("../assets/social/whatsapp.png")}
               style={styles.icon}
@@ -176,7 +195,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   icon: {
-    width: 32,
-    height: 32,
+    width: width * 0.1, // Responsive icon size
+    height: width * 0.1,
   },
 });

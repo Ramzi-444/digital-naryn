@@ -10,9 +10,11 @@ import {
   Modal,
   SafeAreaView,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, Stack, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // This will be replaced with data from backend
 const fallbackPhotos = [
@@ -21,6 +23,9 @@ const fallbackPhotos = [
   require("../../assets/places/bamboo-cafe/cafe-2.jpg"),
   // Add more photos here
 ];
+
+// Simple cache for photos
+const photoCache = new Map(); // Uncommented for production use
 
 const GalleryPage = () => {
   const router = useRouter();
@@ -34,22 +39,69 @@ const GalleryPage = () => {
     const fetchItem = async () => {
       if (!id) return;
 
-      try {
-        setLoading(true);
-        const response = await fetch(
-          `http://157.230.109.162:8000/api/items/${id}`
-        );
-        const data = await response.json();
-        setItem(data);
-    
-      } catch (error) {
-        console.error("Error fetching item data for photos:", error);
-      } finally {
+      // Try to get from cache first
+      const cacheKey = `photos:${id}`;
+      if (photoCache.has(cacheKey)) {
+        setItem(photoCache.get(cacheKey));
         setLoading(false);
+        return;
+      }
+
+      try {
+        const cachedItem = await AsyncStorage.getItem(cacheKey);
+        if (cachedItem) {
+          const parsedItem = JSON.parse(cachedItem);
+          setItem(parsedItem);
+          photoCache.set(cacheKey, parsedItem);
+          setLoading(false);
+
+          // Still refresh in background
+          refreshData(false);
+          return;
+        }
+
+        // No cache, load with loading state
+        refreshData(true);
+      } catch (error) {
+        console.error("Error loading cached photos:", error);
+        refreshData(true);
       }
     };
+
     fetchItem();
   }, [id]);
+
+  const refreshData = async (showLoading = true) => {
+    if (!id) return;
+
+    if (showLoading) {
+      setLoading(true);
+    }
+
+    try {
+      const response = await fetch(
+        `http://157.230.109.162:8000/api/items/${id}`
+      );
+      const data = await response.json();
+
+      // Save to cache
+      const cacheKey = `photos:${id}`;
+      photoCache.set(cacheKey, data);
+      try {
+        await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
+      } catch (error) {
+        console.error("Error caching photo data:", error);
+      }
+
+      setItem(data);
+    } catch (error) {
+      console.error("Error fetching item data for photos:", error);
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  };
 
   const closePhoto = () => {
     Animated.spring(fadeAnim, {
@@ -141,7 +193,7 @@ const GalleryPage = () => {
       {/* Photos List */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading photos...</Text>
+          <ActivityIndicator size="large" color="#007AFF" />
         </View>
       ) : item?.photos && item.photos.length > 0 ? (
         <FlatList
@@ -330,6 +382,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 18,
     fontWeight: "600",
+    marginTop: 12,
   },
 });
 

@@ -24,3 +24,4 @@ frontend/.vscode/
 
 # === OS Files ===
 Thumbs.db
+node_modules

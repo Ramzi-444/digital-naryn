@@ -41,7 +41,7 @@ const GalleryPage = () => {
         );
         const data = await response.json();
         setItem(data);
-        console.log("Fetched photos data:", data?.photos);
+    
       } catch (error) {
         console.error("Error fetching item data for photos:", error);
       } finally {
@@ -245,6 +245,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     backgroundColor: "#fff",
+    flexWrap: "wrap", // Ensures text wraps to the next line
+    maxWidth: "85%",
   },
   backButton: {
     width: 40,

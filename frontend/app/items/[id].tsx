@@ -141,7 +141,7 @@ const ItemPage = () => {
           `http://157.230.109.162:8000/api/items/${id}`
         );
         const data = await response.json();
-        console.log("Fetched Item:", data); // Debugging
+       
         setItem(data);
 
         // Update header images if photos exist in the response
@@ -292,7 +292,7 @@ const ItemPage = () => {
       });
 
       if (url) {
-        console.log("Opening maps with URL:", url);
+      
         Linking.openURL(url).catch((err) => {
           console.error("Error opening maps:", err);
           Alert.alert("Error", "Could not open maps application");
@@ -343,7 +343,7 @@ const ItemPage = () => {
 
   // Add this function to refresh content when app has issues
   const refreshContent = () => {
-    console.log("Refreshing content");
+   
     if (id) {
       // Re-fetch item data
       fetch(`http://157.230.109.162:8000/api/items/${id}`)
@@ -510,8 +510,7 @@ const ItemPage = () => {
               zoomEnabled={true}
               showsUserLocation={true}
               ref={mapRef}
-              onMapReady={() => console.log("Map is ready")}
-              onMapLoaded={() => console.log("Map has loaded")}
+           
             >
               <Marker
                 coordinate={{

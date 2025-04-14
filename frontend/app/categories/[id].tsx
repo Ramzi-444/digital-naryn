@@ -35,7 +35,15 @@ const CategoriesPage = () => {
   const id = searchParams.get("id");
   const [category, setCategory] = useState<any>(null);
   const [items, setItems] = useState<any>([]);
-  const [location, setLocation] = useState({});
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    latitudeDelta?: number;
+    longitudeDelta?: number;
+  }>({
+    latitude: 0,
+    longitude: 0,
+  });
 
   useEffect(() => {
     // Fetch category data
@@ -58,7 +66,7 @@ const CategoriesPage = () => {
         const data = await response.json();
         // Filter items by category ID
         const filteredItems = data.filter(
-          (item: any) => item.category === parseInt(id)
+          (item: any) => id !== null && item.category === parseInt(id)
         );
         setItems(filteredItems);
 
@@ -187,7 +195,7 @@ const CategoriesPage = () => {
           loadingIndicatorColor="#007AFF"
           loadingBackgroundColor="#ffffff"
         >
-          {items.map((item) => (
+          {items.map((item: { id: React.Key | null | undefined; latitude: any; longitude: any; name: string | undefined; address: string | undefined; }) => (
             <Marker
               key={item.id}
               coordinate={{

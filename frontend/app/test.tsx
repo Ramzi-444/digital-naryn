@@ -31,6 +31,9 @@ const SearchModal = () => {
   const [recentSearches, setRecentSearches] = useState<
     { id: number; name: string; type: string }[]
   >([]);
+  const [clickCounts, setClickCounts] = useState<{
+    [key: string]: { count: number; name: string };
+  }>({});
 
   // Load recent searches from AsyncStorage
   useEffect(() => {
@@ -47,6 +50,54 @@ const SearchModal = () => {
 
     loadRecentSearches();
   }, []);
+
+  // Load clickCounts from AsyncStorage
+  useEffect(() => {
+    const loadClickCounts = async () => {
+      try {
+        const storedClickCounts = await AsyncStorage.getItem("clickCounts");
+        if (storedClickCounts) {
+          console.log(
+            "Loaded clickCounts from AsyncStorage:",
+            storedClickCounts
+          ); // Debug log
+          setClickCounts(JSON.parse(storedClickCounts));
+        }
+      } catch (error) {
+        console.error("Error loading click counts:", error);
+      }
+    };
+
+    loadClickCounts();
+  }, []);
+
+  useEffect(() => {
+    const testAsyncStorage = async () => {
+      try {
+        await AsyncStorage.setItem("testKey", "testValue");
+        const value = await AsyncStorage.getItem("testKey");
+        console.log("AsyncStorage test value:", value); // Should log "testValue"
+      } catch (error) {
+        console.error("AsyncStorage test failed:", error);
+      }
+    };
+
+    testAsyncStorage();
+  }, []);
+
+  // Save clickCounts to AsyncStorage whenever it changes
+  useEffect(() => {
+    const saveClickCounts = async () => {
+      try {
+        console.log("Saving clickCounts to AsyncStorage:", clickCounts); // Debug log
+        await AsyncStorage.setItem("clickCounts", JSON.stringify(clickCounts));
+      } catch (error) {
+        console.error("Error saving click counts:", error);
+      }
+    };
+
+    saveClickCounts();
+  }, [clickCounts]);
 
   // Fetch items and categories from the API
   useEffect(() => {
@@ -126,6 +177,20 @@ const SearchModal = () => {
         JSON.stringify(updatedRecents)
       );
 
+      // Update clickCounts
+      setClickCounts((prevCounts) => {
+        const updatedCounts = {
+          ...prevCounts,
+          [completeItem.id]: {
+            count: (prevCounts[completeItem.id]?.count || 0) + 1,
+            name: completeItem.name,
+            type: completeItem.type,
+          },
+        };
+        console.log("Updated clickCounts:", updatedCounts);
+        return updatedCounts;
+      });
+
       // Navigate based on item type
       if (completeItem.type === "category") {
         router.replace(`/categories/${completeItem.id}`);
@@ -136,6 +201,37 @@ const SearchModal = () => {
       console.error("Error handling item click:", error);
     }
   };
+
+  // Get popular items with at least 3 clicks
+  const sortedPopularItems = Object.entries(clickCounts)
+    .filter(([id, item]) => id !== "undefined" && item && item.count >= 3)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 5)
+    .map(([id, item]) => ({
+      id: parseInt(id),
+      name: item.name,
+      type: item.type || "item",
+      count: item.count,
+    }));
+
+  useEffect(() => {
+    console.log("Current clickCounts:", clickCounts);
+  }, [clickCounts]);
+
+  const clearClickCounts = async () => {
+    await AsyncStorage.removeItem("clickCounts");
+    setClickCounts({});
+  };
+
+  console.log("Popular items:", sortedPopularItems);
+
+  const checkStorage = async () => {
+    const counts = await AsyncStorage.getItem("clickCounts");
+    const recents = await AsyncStorage.getItem("recentSearches");
+    console.log("Storage - clickCounts:", counts);
+    console.log("Storage - recentSearches:", recents);
+  };
+  // Call this when needed for debugging
 
   return (
     <>
@@ -192,6 +288,9 @@ const SearchModal = () => {
               {recentSearches.length > 0 && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Recent Searches</Text>
+                  <TouchableOpacity onPress={clearClickCounts}>
+                    <Text>Clear Click Counts</Text>
+                  </TouchableOpacity>
                   {recentSearches.map((item, index) => (
                     <Pressable
                       key={`${item.name}-${index}`}
@@ -209,6 +308,27 @@ const SearchModal = () => {
                           size={22}
                           color="#007AFF"
                         />
+                      </View>
+                      <Text style={styles.itemText}>{item.name}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              {sortedPopularItems.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Popular</Text>
+                  {sortedPopularItems.map((item, index) => (
+                    <Pressable
+                      key={`${item.id}-${index}`}
+                      style={({ pressed }) => [
+                        styles.item,
+                        pressed && styles.itemPressed,
+                      ]}
+                      onPress={() => handleItemClick(item)}
+                    >
+                      <View style={styles.iconContainer}>
+                        <Ionicons name="star" size={22} color="#007AFF" />
                       </View>
                       <Text style={styles.itemText}>{item.name}</Text>
                     </Pressable>

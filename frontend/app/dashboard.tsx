@@ -7,13 +7,14 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  Dimensions,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import axios from "axios";
+import * as Location from "expo-location"; // Import expo-location
+import { getDistance } from "geolib"; // Import geolib for distance calculation
 
 const Dashboard = () => {
   interface Category {
@@ -28,12 +29,19 @@ const Dashboard = () => {
     address: string;
     phone: number;
     avatar_photo?: string;
+    latitude: number; // Add latitude
+    longitude: number; // Add longitude
   }
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -61,14 +69,52 @@ const Dashboard = () => {
       }
     };
 
+    const getLocation = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        alert("Location permission is required to show nearby places.");
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({});
+      setLocation({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+    };
+
+    const filterNearbyItems = () => {
+      if (!location) return;
+      const nearby = items.filter((item) => {
+        const distance = getDistance(
+          { latitude: location.latitude, longitude: location.longitude },
+          { latitude: item.latitude, longitude: item.longitude }
+        );
+        return distance <= 200; // 200 meters
+      });
+      setFilteredItems(nearby);
+    };
+
     const fetchData = async () => {
       setLoading(true);
-      await Promise.all([fetchCategories(), fetchItems()]);
-      setLoading(false);
+      await Promise.all([fetchCategories(), fetchItems(), getLocation()]);
+      setLoading(false); // Move this here
     };
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (location) {
+      const nearby = items.filter((item) => {
+        const distance = getDistance(
+          { latitude: location.latitude, longitude: location.longitude },
+          { latitude: item.latitude, longitude: item.longitude }
+        );
+        return distance <= 200; // 200 meters
+      });
+      setFilteredItems(nearby);
+    }
+  }, [location, items]);
 
   const renderCategoryCard = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -91,10 +137,7 @@ const Dashboard = () => {
       activeOpacity={0.7}
     >
       {item.avatar_photo ? (
-        <Image
-          source={{ uri: item.avatar_photo }}
-          style={styles.placeLogo}
-        />
+        <Image source={{ uri: item.avatar_photo }} style={styles.placeLogo} />
       ) : (
         <Text>No Avatar</Text>
       )}
@@ -204,17 +247,26 @@ const Dashboard = () => {
       </View>
 
       {/* Scrollable Places List */}
-      <FlatList
-        data={items}
-        renderItem={renderPlaceCard}
-        keyExtractor={(_, index) => index.toString()}
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-        style={styles.placesList}
-        bounces={true}
-        overScrollMode="never"
-        decelerationRate="normal"
-      />
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#007AFF" />
+      ) : filteredItems.length > 0 ? (
+        <FlatList
+          data={filteredItems}
+          renderItem={renderPlaceCard}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          style={styles.placesList}
+          bounces={true}
+          overScrollMode="never"
+          decelerationRate="normal"
+        />
+      ) : (
+        <Text style={{ textAlign: "center", marginTop: 20 }}>
+          No places found within 200 meters.
+        </Text>
+      )}
     </SafeAreaView>
   );
 };

@@ -147,6 +147,36 @@ const GalleryPage = () => {
     </TouchableOpacity>
   );
 
+  useEffect(() => {
+    // Clean up expired cache items
+    const cleanupCache = async () => {
+      try {
+        const now = Date.now();
+        const keys = await AsyncStorage.getAllKeys();
+        const photoKeys = keys.filter((key) => key.startsWith("photos:"));
+
+        for (const key of photoKeys) {
+          const item = await AsyncStorage.getItem(key);
+          if (item) {
+            const parsed = JSON.parse(item);
+            // If cached more than 24 hours ago, remove it
+            if (
+              parsed.timestamp &&
+              now - parsed.timestamp > 24 * 60 * 60 * 1000
+            ) {
+              await AsyncStorage.removeItem(key);
+              photoCache.delete(key);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error cleaning cache:", error);
+      }
+    };
+
+    cleanupCache();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -161,7 +191,14 @@ const GalleryPage = () => {
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{item?.name || "Gallery"}</Text>
+        <Text
+          style={[
+            styles.headerTitle,
+            { flex: 1, flexWrap: "wrap", textAlign: "center" },
+          ]}
+        >
+          {item?.name || "Gallery"}
+        </Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -258,8 +295,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     backgroundColor: "#fff",
-    flexWrap: "wrap", // Ensures text wraps to the next line
-    maxWidth: "85%",
   },
   backButton: {
     width: 40,

@@ -41,7 +41,6 @@ const GalleryPage = () => {
         );
         const data = await response.json();
         setItem(data);
-    
       } catch (error) {
         console.error("Error fetching item data for photos:", error);
       } finally {

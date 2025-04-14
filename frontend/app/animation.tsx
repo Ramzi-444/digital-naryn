@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, View, StyleSheet, Dimensions } from "react-native";
+import { Animated, StyleSheet, Dimensions } from "react-native";
 
 const { width } = Dimensions.get("window");
 const CIRCLE_SIZE = width * 0.7;

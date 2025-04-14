@@ -70,16 +70,23 @@ const Dashboard = () => {
     };
 
     const getLocation = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        alert("Location permission is required to show nearby places.");
-        return;
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          alert("Location permission is required to show nearby places.");
+          return;
+        }
+        const loc = await Location.getCurrentPositionAsync({});
+        setLocation({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+      } catch (error) {
+        console.error("Error getting location:", error);
+        alert(
+          "Failed to retrieve location. Please enable location services and try again."
+        );
       }
-      const loc = await Location.getCurrentPositionAsync({});
-      setLocation({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      });
     };
 
     const filterNearbyItems = () => {
@@ -167,7 +174,7 @@ const Dashboard = () => {
         style={styles.photoPreview}
         onPress={(e) => {
           e.stopPropagation(); // Prevent triggering the parent onPress
-          router.push(`/photos/${item.id}`); // Navigate to /photos/gallery/{id}
+          router.push(`/photos/${item.id}`); 
         }}
         activeOpacity={0.6}
       >

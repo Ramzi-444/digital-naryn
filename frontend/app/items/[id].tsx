@@ -633,12 +633,6 @@ const ItemPage = () => {
                   <Text style={styles.searchText}>Search</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.langButton}
-                  onPress={() => setLanguage(language === "en" ? "ru" : "en")}
-                >
-                  <Ionicons name="globe-outline" size={24} color="white" />
-                </TouchableOpacity>
               </View>
 
               <View style={styles.titleContainer}>

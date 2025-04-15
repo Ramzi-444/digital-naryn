@@ -190,6 +190,7 @@ const Dashboard = () => {
           style={{
             flexDirection: "row",
             alignItems: "center",
+            justifyContent: "center",
             paddingHorizontal: 16,
           }}
         >
@@ -218,7 +219,7 @@ const Dashboard = () => {
                 />
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </TouchableOpacity>         
         </View>
 
         {/* Categories Header */}

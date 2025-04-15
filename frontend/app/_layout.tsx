@@ -3,8 +3,6 @@ import React, { useEffect, useState } from "react";
 
 import Animation from "./animation";
 
-
-
 export default function RootLayout() {
   const [animationFinished, setAnimationFinished] = useState(false);
   const router = useRouter();
@@ -21,9 +19,9 @@ export default function RootLayout() {
 
   return (
     <>
-      {/* {!animationFinished ? (
+      {!animationFinished ? (
         <Animation onAnimationFinished={handleAnimationFinished} />
-      ) : ( */}
+      ) : (
         <Stack
           screenOptions={{
             headerShown: false,
@@ -78,7 +76,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
-       {/* )}  */}
+      )}
     </>
   );
 }

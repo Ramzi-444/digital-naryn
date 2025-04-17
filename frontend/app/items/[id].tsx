@@ -16,6 +16,7 @@ import {
   Alert,
   AppState,
   Clipboard,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -33,85 +34,27 @@ const { width } = Dimensions.get("window");
 //   require("../../assets/places/bamboo-cafe/cafe-2.jpg"),
 // ];
 
-type Language = "en" | "ru";
-
-type Translation = {
-  overview: string;
-  workingHours: string;
-  location: string;
-  photos: string;
-  viewAll: string;
-  callNow: string;
-  copyNumber: string;
-  openWhatsapp: string;
-  description: string;
-  monday: string;
-  tuesday: string;
-  wednesday: string;
-  thursday: string;
-  friday: string;
-  saturday: string;
-  sunday: string;
-  openInMaps: string;
-  noInstagram: string;
-  followUs: string;
-  delivery: string;
-  takeaway: string;
-};
-
-const translations: Record<Language, Translation> = {
-  en: {
-    overview: "Overview",
-    workingHours: "Working Hours",
-    location: "Location",
-    photos: "Photos",
-    viewAll: "View all",
-    callNow: "Call Now",
-    copyNumber: "Copy phone number",
-    openWhatsapp: "Open in WhatsApp",
-    description:
-      "Nice and beautiful cafe to spend your day. A cozy place where you can enjoy your meal. Perfect for meetings and casual dining.",
-    monday: "Monday",
-    tuesday: "Tuesday",
-    wednesday: "Wednesday",
-    thursday: "Thursday",
-    friday: "Friday",
-    saturday: "Saturday",
-    sunday: "Sunday",
-    openInMaps: "Open in Maps",
-    noInstagram: "No Instagram profile available",
-    followUs: "Follow us",
-    delivery: "Delivery",
-    takeaway: "Takeaway",
-  },
-  ru: {
-    overview: "Обзор",
-    workingHours: "Режим работы",
-    location: "Расположение",
-    photos: "Фотографии",
-    viewAll: "Показать все",
-    callNow: "Позвонить",
-    copyNumber: "Скопировать номер",
-    openWhatsapp: "Открыть в WhatsApp",
-    description:
-      "Уютное и красивое кафе, где можно провести свой день. Комфортное место, где можно насладиться едой. Идеально подходит для встреч и повседневного питания.",
-    monday: "Понедельник",
-    tuesday: "Вторник",
-    wednesday: "Среда",
-    thursday: "Четверг",
-    friday: "Пятница",
-    saturday: "Суббота",
-    sunday: "Воскресенье",
-    openInMaps: "Открыть в Картах",
-    noInstagram: "Нет профиля в Instagram",
-    followUs: "Подписывайтесь",
-    delivery: "Доставка",
-    takeaway: "На вынос",
-  },
-};
-
-const socialLinks = {
-  instagram: "bamboo_naryn",
+const TEXT = {
+  overview: "Overview",
+  workingHours: "Working Hours",
+  location: "Location",
+  photos: "Photos",
+  viewAll: "View all",
+  callNow: "Call Now",
+  copyNumber: "Copy phone number",
+  openWhatsapp: "Open in WhatsApp",
+  monday: "Monday",
+  tuesday: "Tuesday",
+  wednesday: "Wednesday",
+  thursday: "Thursday",
+  friday: "Friday",
+  saturday: "Saturday",
+  sunday: "Sunday",
+  openInMaps: "Open in Maps",
+  noInstagram: "No Instagram profile available",
+  followUs: "Follow us",
+  delivery: "Delivery",
+  takeaway: "Takeaway",
 };
 
 const normalizeWorkingHours = (workingHours: Record<string, string>) => {
@@ -128,12 +71,10 @@ const cache = new Map(); // Uncommented
 const ItemPage = () => {
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [language, setLanguage] = useState<Language>("en");
   const [showCallOptions, setShowCallOptions] = useState(false);
   const fadeAnim = new Animated.Value(1);
   const modalAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef<MapView | null>(null);
-  const t = translations[language];
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const [item, setItem] = useState<any>(null);
@@ -345,14 +286,36 @@ const ItemPage = () => {
       return false; // Return false if hours are invalid or "Closed"
     }
 
-    const now = new Date();
-    const [start, end] = hours.split("-").map((time) => {
-      const [hour, minute] = time.trim().split(":").map(Number);
-      return new Date().setHours(hour, minute, 0, 0);
-    });
+    // Parse the hours string
+    const [startStr, endStr] = hours.split("-").map((t) => t.trim());
 
-    const currentTime = now.getTime();
-    return currentTime >= start && currentTime < end;
+    // Get current date/time
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    // Parse opening hours
+    const [openHour, openMinute] = startStr.split(":").map(Number);
+
+    // Parse closing hours
+    const [closeHour, closeMinute] = endStr.split(":").map(Number);
+
+    // Convert times to minutes for easier comparison
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
+    const openTimeInMinutes = openHour * 60 + openMinute;
+    const closeTimeInMinutes = closeHour * 60 + closeMinute;
+
+    // If closing time is 00:00 or smaller than opening time, it means it closes after midnight
+    if (closeTimeInMinutes === 0 || closeTimeInMinutes < openTimeInMinutes) {
+      // For places that close after midnight, check if current time is after opening time
+      return currentTimeInMinutes >= openTimeInMinutes;
+    }
+
+    // Standard comparison for places that open and close on the same day
+    return (
+      currentTimeInMinutes >= openTimeInMinutes &&
+      currentTimeInMinutes < closeTimeInMinutes
+    );
   };
 
   // Get current day
@@ -540,6 +503,11 @@ const ItemPage = () => {
     }
   };
 
+  useEffect(() => {
+    // Check if we're seeing the placeholder at all
+    console.log("headerImages length:", headerImages.length);
+  }, [headerImages]);
+
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -548,49 +516,24 @@ const ItemPage = () => {
         <View style={styles.loadingContainer}>
           <View style={styles.loadingBackground}>
             <LinearGradient
-              colors={["rgba(255,255,255,0.8)", "rgba(240,240,240,0.8)"]}
+              colors={["#ffffff", "#f8f8f8"]}
               style={StyleSheet.absoluteFill}
             />
           </View>
           <View style={styles.loadingContent}>
-            <View style={styles.logoContainer}>
-              <Animated.View
-                style={{
-                  transform: [{ scale }, { rotate: spin }],
-                }}
-              >
-                <Ionicons name="compass" size={70} color="#007AFF" />
-              </Animated.View>
-            </View>
+            <Animated.View
+              style={{
+                transform: [{ rotate: spin }],
+              }}
+            >
+              <Ionicons name="compass" size={60} color="#007AFF" />
+            </Animated.View>
             <Text style={styles.loadingTitle}>Digital Naryn</Text>
-            <Text style={styles.loadingSubtitle}>
-              Discovering places around you
-            </Text>
-            <View style={styles.loadingIndicator}>
-              <View style={styles.loadingDot} />
-              <Animated.View
-                style={[
-                  styles.loadingDot,
-                  {
-                    opacity: shimmerAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.3, 1, 0.3],
-                    }),
-                  },
-                ]}
-              />
-              <Animated.View
-                style={[
-                  styles.loadingDot,
-                  {
-                    opacity: shimmerAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.1, 0.3, 1],
-                    }),
-                  },
-                ]}
-              />
-            </View>
+            <ActivityIndicator
+              size="small"
+              color="#007AFF"
+              style={{ marginTop: 20 }}
+            />
           </View>
         </View>
       ) : (
@@ -629,10 +572,14 @@ const ItemPage = () => {
                   onPress={() => router.push("/modals/search")}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="search" size={20} color="#999" />
+                  <Ionicons
+                    name="search"
+                    size={20}
+                    color="#999"
+                    style={styles.searchIcon}
+                  />
                   <Text style={styles.searchText}>Search</Text>
                 </TouchableOpacity>
-
               </View>
 
               <View style={styles.titleContainer}>
@@ -649,7 +596,7 @@ const ItemPage = () => {
 
           {/* Overview Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t.overview}</Text>
+            <Text style={styles.sectionTitle}>{TEXT.overview}</Text>
             <Text style={styles.description}>
               {item?.description || "noname"}
             </Text>
@@ -676,24 +623,24 @@ const ItemPage = () => {
                   if (item?.instagram) {
                     Linking.openURL(`https://instagram.com/${item.instagram}`);
                   } else {
-                    Alert.alert(t.noInstagram);
+                    Alert.alert(TEXT.noInstagram);
                   }
                 }}
               >
                 <Ionicons name="logo-instagram" size={28} color="#E4405F" />
                 <Text style={[styles.amenityText, styles.instagramText]}>
-                  {t.followUs}
+                  {TEXT.followUs}
                 </Text>
               </TouchableOpacity>
 
               <View style={styles.amenityBox}>
                 <Ionicons name="bicycle" size={24} color="#666" />
-                <Text style={styles.amenityText}>{t.delivery}</Text>
+                <Text style={styles.amenityText}>{TEXT.delivery}</Text>
               </View>
 
               <View style={styles.amenityBox}>
                 <Ionicons name="bag-handle" size={24} color="#666" />
-                <Text style={styles.amenityText}>{t.takeaway}</Text>
+                <Text style={styles.amenityText}>{TEXT.takeaway}</Text>
               </View>
             </View>
           </View>
@@ -701,12 +648,12 @@ const ItemPage = () => {
           {/* Map Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{t.location}</Text>
+              <Text style={styles.sectionTitle}>{TEXT.location}</Text>
               <TouchableOpacity
                 onPress={openInMaps}
                 style={styles.viewAllButton}
               >
-                <Text style={styles.viewAllText}>{t.openInMaps}</Text>
+                <Text style={styles.viewAllText}>{TEXT.openInMaps}</Text>
                 <Ionicons name="chevron-forward" size={16} color="#007AFF" />
               </TouchableOpacity>
             </View>
@@ -756,7 +703,7 @@ const ItemPage = () => {
 
           {/* Working Hours Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t.workingHours}</Text>
+            <Text style={styles.sectionTitle}>{TEXT.workingHours}</Text>
             {daysOfWeek.map((day) => {
               const hours =
                 workingHours[day as keyof typeof workingHours] || "Closed";
@@ -767,7 +714,7 @@ const ItemPage = () => {
                 <View key={day} style={styles.hoursRow}>
                   <View style={styles.dayContainer}>
                     <Text style={[styles.dayText, isToday && styles.todayText]}>
-                      {t[day as keyof Translation]}
+                      {TEXT[day as keyof typeof TEXT]}
                     </Text>
                     {isToday && (
                       <View
@@ -793,12 +740,12 @@ const ItemPage = () => {
           {/* Photos Section */}
           <View style={[styles.section, styles.lastSection]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{t.photos}</Text>
+              <Text style={styles.sectionTitle}>{TEXT.photos}</Text>
               <TouchableOpacity
                 onPress={handleViewAllPhotos}
                 style={styles.viewAllButton}
               >
-                <Text style={styles.viewAllText}>{t.viewAll}</Text>
+                <Text style={styles.viewAllText}>{TEXT.viewAll}</Text>
                 <Ionicons name="chevron-forward" size={16} color="#007AFF" />
               </TouchableOpacity>
             </View>
@@ -889,7 +836,7 @@ const ItemPage = () => {
                 }}
               >
                 <Ionicons name="call-outline" size={24} color="#007AFF" />
-                <Text style={styles.modalOptionText}>{t.callNow}</Text>
+                <Text style={styles.modalOptionText}>{TEXT.callNow}</Text>
               </TouchableOpacity>
 
               {/* Copy Number Option */}
@@ -901,7 +848,7 @@ const ItemPage = () => {
                 }}
               >
                 <Ionicons name="copy-outline" size={24} color="#007AFF" />
-                <Text style={styles.modalOptionText}>{t.copyNumber}</Text>
+                <Text style={styles.modalOptionText}>{TEXT.copyNumber}</Text>
               </TouchableOpacity>
 
               {/* Open in WhatsApp Option */}
@@ -913,21 +860,19 @@ const ItemPage = () => {
                 }}
               >
                 <Ionicons name="logo-whatsapp" size={24} color="#007AFF" />
-                <Text style={styles.modalOptionText}>{t.openWhatsapp}</Text>
+                <Text style={styles.modalOptionText}>{TEXT.openWhatsapp}</Text>
               </TouchableOpacity>
             </Animated.View>
           </TouchableOpacity>
         </Animated.View>
       </Modal>
 
-      {/* Call Now Button */}
-      <TouchableOpacity
-        style={[styles.callButton, isLoading && styles.callButtonDisabled]}
-        onPress={handleCallOptions}
-        disabled={isLoading}
-      >
-        <Text style={styles.callButtonText}>{t.callNow}</Text>
-      </TouchableOpacity>
+      {/* Call Now Button - only show when not loading */}
+      {!isLoading && (
+        <TouchableOpacity style={styles.callButton} onPress={handleCallOptions}>
+          <Text style={styles.callButtonText}>{TEXT.callNow}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -978,14 +923,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     marginHorizontal: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  searchIcon: {
+    marginRight: 12,
   },
   searchText: {
-    marginLeft: 8,
     fontSize: 16,
     color: "#999",
+    flex: 1,
   },
   langButton: {
     width: 40,
@@ -1225,41 +1178,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
   },
-  logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
   loadingTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "600",
     color: "#333",
-    marginTop: 24,
-  },
-  loadingSubtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginTop: 8,
-    textAlign: "center",
-  },
-  loadingIndicator: {
-    flexDirection: "row",
-    marginTop: 20,
-  },
-  loadingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#007AFF",
-    marginHorizontal: 3,
+    marginTop: 16,
   },
 });
 

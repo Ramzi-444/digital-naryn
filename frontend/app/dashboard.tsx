@@ -126,8 +126,9 @@ const Dashboard = () => {
 
   const renderCategoryCard = ({ item }: { item: any }) => (
     <TouchableOpacity
-      onPress={() => router.push(`/categories/${item.id}`)} // Adjust the route as needed
+      onPress={() => router.push(`/categories/${item.id}`)}
       activeOpacity={0.7}
+      style={styles.categoryTouchable}
     >
       <View style={styles.card}>
         {item.icon ? (
@@ -219,7 +220,7 @@ const Dashboard = () => {
                 />
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>         
+          </TouchableOpacity>
         </View>
 
         {/* Categories Header */}
@@ -243,6 +244,7 @@ const Dashboard = () => {
             numColumns={3}
             scrollEnabled={false}
             contentContainerStyle={styles.gridContainer}
+            columnWrapperStyle={styles.columnWrapper}
           />
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -360,7 +362,7 @@ const styles = StyleSheet.create({
   gridContainer: {
     paddingTop: 10,
     paddingBottom: 20,
-    justifyContent: "center",
+    width: "100%",
   },
   placesTitle: {
     fontSize: 18,
@@ -427,6 +429,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#aaa",
     marginTop: 4,
+  },
+  categoryTouchable: {
+    flex: 1,
+    maxWidth: "33.3%",
+    paddingHorizontal: 6,
+  },
+  columnWrapper: {
+    justifyContent: "space-between",
+    width: "100%",
   },
 });
 

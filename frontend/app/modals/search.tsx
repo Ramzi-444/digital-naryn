@@ -137,6 +137,16 @@ const SearchModal = () => {
     }
   };
 
+  // Add this function to clear recent searches
+  const clearRecentSearches = async () => {
+    try {
+      await AsyncStorage.removeItem("recentSearches");
+      setRecentSearches([]);
+    } catch (error) {
+      console.error("Error clearing recent searches:", error);
+    }
+  };
+
   return (
     <>
       <StatusBar
@@ -191,7 +201,12 @@ const SearchModal = () => {
             <>
               {recentSearches.length > 0 && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Recent Searches</Text>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Recent Searches</Text>
+                    <TouchableOpacity onPress={clearRecentSearches}>
+                      <Text style={styles.clearText}>Clear</Text>
+                    </TouchableOpacity>
+                  </View>
                   {recentSearches.map((item, index) => (
                     <Pressable
                       key={`${item.name}-${index}`}
@@ -331,6 +346,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  clearText: {
+    fontSize: 16,
+    color: "#007AFF",
+    fontWeight: "500",
   },
 });
 

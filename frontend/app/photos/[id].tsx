@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   FlatList,
   Dimensions,
@@ -11,13 +10,28 @@ import {
   SafeAreaView,
   Animated,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useRouter, Stack, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Image } from "react-native";
 
 // Simple cache for photos
 const photoCache = new Map();
+
+const PhotoSkeleton = () => (
+  <View style={[styles.photoContainer, { backgroundColor: "#f5f5f5" }]}>
+    <Animated.View
+      style={[
+        styles.skeletonAnimation,
+        {
+          opacity: useRef(new Animated.Value(0.3)).current,
+        },
+      ]}
+    />
+  </View>
+);
 
 const GalleryPage = () => {
   const router = useRouter();
@@ -26,6 +40,10 @@ const GalleryPage = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [fullScreenLoading, setFullScreenLoading] = useState(false);
+  const [imageLoadingStates, setImageLoadingStates] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -132,20 +150,36 @@ const GalleryPage = () => {
   }: {
     item: string;
     index: number;
-  }) => (
-    <TouchableOpacity
-      style={styles.photoContainer}
-      onPress={() => openPhoto(index)}
-      activeOpacity={0.9}
-      delayPressIn={50}
-    >
-      <Image
-        source={{ uri: `http://157.230.109.162:8000/media/${photo}` }}
-        style={styles.photoThumbnail}
-      />
-      <View style={styles.photoOverlay} />
-    </TouchableOpacity>
-  );
+  }) => {
+    return (
+      <TouchableOpacity
+        style={styles.photoContainer}
+        onPress={() => openPhoto(index)}
+        activeOpacity={0.9}
+        delayPressIn={50}
+      >
+        {imageLoadingStates[photo] && (
+          <View style={styles.imageLoadingContainer}>
+            <ActivityIndicator size="small" color="#007AFF" />
+          </View>
+        )}
+        <Image
+          source={{ uri: `http://157.230.109.162:8000/media/${photo}` }}
+          style={[
+            styles.photoThumbnail,
+            imageLoadingStates[photo] && { opacity: 0 },
+          ]}
+          onLoadStart={() => {
+            setImageLoadingStates((prev) => ({ ...prev, [photo]: true }));
+          }}
+          onLoadEnd={() => {
+            setImageLoadingStates((prev) => ({ ...prev, [photo]: false }));
+          }}
+        />
+        <View style={styles.photoOverlay} />
+      </TouchableOpacity>
+    );
+  };
 
   useEffect(() => {
     // Clean up expired cache items
@@ -177,6 +211,25 @@ const GalleryPage = () => {
     cleanupCache();
   }, []);
 
+  useEffect(() => {
+    if (loading) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(fadeAnim, {
+            toValue: 0.7,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 0.3,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [loading]);
+
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -204,9 +257,21 @@ const GalleryPage = () => {
 
       {/* Photos List */}
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-        </View>
+        <FlatList
+          data={[1, 2, 3]} // Show 3 skeleton items
+          renderItem={() => <PhotoSkeleton />}
+          keyExtractor={(item) => item.toString()}
+          contentContainerStyle={styles.photosList}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={() => refreshData(true)}
+              tintColor="#007AFF"
+              colors={["#007AFF"]}
+            />
+          }
+        />
       ) : item?.photos && item.photos.length > 0 ? (
         <FlatList
           data={item.photos}
@@ -217,6 +282,14 @@ const GalleryPage = () => {
           bounces={true}
           overScrollMode="never"
           decelerationRate="normal"
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={() => refreshData(true)}
+              tintColor="#007AFF"
+              colors={["#007AFF"]}
+            />
+          }
         />
       ) : (
         <View style={styles.emptyContainer}>
@@ -257,21 +330,22 @@ const GalleryPage = () => {
           </TouchableOpacity>
 
           {selectedPhoto !== null && item?.photos && item.photos.length > 0 && (
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={(e) => {
-                e.stopPropagation();
-              }}
-              style={styles.modalImageContainer}
-            >
+            <View style={styles.modalImageContainer}>
               <Image
                 source={{
                   uri: `http://157.230.109.162:8000/media/${item.photos[selectedPhoto]}`,
                 }}
                 style={styles.fullScreenPhoto}
                 resizeMode="contain"
+                onLoadStart={() => setFullScreenLoading(true)}
+                onLoadEnd={() => setFullScreenLoading(false)}
               />
-            </TouchableOpacity>
+              {fullScreenLoading && (
+                <View style={styles.fullScreenLoadingContainer}>
+                  <ActivityIndicator size="large" color="#fff" />
+                </View>
+              )}
+            </View>
           )}
         </Animated.View>
       </Modal>
@@ -391,6 +465,32 @@ const styles = StyleSheet.create({
     color: "#666",
     marginTop: 16,
     textAlign: "center",
+  },
+  skeletonAnimation: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#e0e0e0",
+    position: "absolute",
+  },
+  imageLoadingContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  fullScreenLoadingContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
 });
 

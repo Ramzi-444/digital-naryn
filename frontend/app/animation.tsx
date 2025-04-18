@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, View, StyleSheet, Dimensions } from "react-native";
+import { Animated, StyleSheet, Dimensions } from "react-native";
 
 const { width } = Dimensions.get("window");
 const CIRCLE_SIZE = width * 0.7;
@@ -151,6 +151,7 @@ const styles = StyleSheet.create({
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
     borderRadius: CIRCLE_SIZE / 2,
+    top: CIRCLE_SIZE / 2,
     backgroundColor: "#d8eaff",
   },
   dotWrapper: {

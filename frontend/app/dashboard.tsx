@@ -7,13 +7,15 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  Dimensions,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import axios from "axios";
+import * as Location from "expo-location"; // Import expo-location
+import { getDistance } from "geolib"; // Import geolib for distance calculation
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Dashboard = () => {
   interface Category {
@@ -28,12 +30,19 @@ const Dashboard = () => {
     address: string;
     phone: number;
     avatar_photo?: string;
+    latitude: number; // Add latitude
+    longitude: number; // Add longitude
   }
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -61,19 +70,65 @@ const Dashboard = () => {
       }
     };
 
+    const getLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          alert("Location permission is required to show nearby places.");
+          return;
+        }
+        const loc = await Location.getCurrentPositionAsync({});
+        setLocation({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+      } catch (error) {
+        console.error("Error getting location:", error);
+        alert(
+          "Failed to retrieve location. Please enable location services and try again."
+        );
+      }
+    };
+
+    const filterNearbyItems = () => {
+      if (!location) return;
+      const nearby = items.filter((item) => {
+        const distance = getDistance(
+          { latitude: location.latitude, longitude: location.longitude },
+          { latitude: item.latitude, longitude: item.longitude }
+        );
+        return distance <= 1000; // 1000 meters
+      });
+      setFilteredItems(nearby);
+    };
+
     const fetchData = async () => {
       setLoading(true);
-      await Promise.all([fetchCategories(), fetchItems()]);
-      setLoading(false);
+      await Promise.all([fetchCategories(), fetchItems(), getLocation()]);
+      setLoading(false); // Move this here
     };
 
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (location) {
+      const nearby = items.filter((item) => {
+        const distance = getDistance(
+          { latitude: location.latitude, longitude: location.longitude },
+          { latitude: item.latitude, longitude: item.longitude }
+        );
+        return distance <= 1000; // 200 meters
+      });
+      setFilteredItems(nearby);
+    }
+  }, [location, items]);
+
   const renderCategoryCard = ({ item }: { item: any }) => (
     <TouchableOpacity
-      onPress={() => router.push(`/categories/${item.id}`)} // Adjust the route as needed
+      onPress={() => router.push(`/categories/${item.id}`)}
       activeOpacity={0.7}
+      style={styles.categoryTouchable}
     >
       <View style={styles.card}>
         {item.icon ? (
@@ -101,10 +156,7 @@ const Dashboard = () => {
         activeOpacity={0.8}
       >
         {item.avatar_photo ? (
-          <Image
-            source={{ uri: item.avatar_photo }}
-            style={styles.placeLogo}
-          />
+          <Image source={{ uri: item.avatar_photo }} style={styles.placeLogo} />
         ) : (
           <View style={styles.placeholder}>
             <Ionicons name="images-outline" size={32} color="#ccc" />
@@ -121,7 +173,7 @@ const Dashboard = () => {
         style={styles.photoPreview}
         onPress={(e) => {
           e.stopPropagation(); // Prevent triggering the parent onPress
-          router.push(`/photos/${item.id}`); // Navigate to /photos/gallery/{id}
+          router.push(`/photos/${item.id}`);
         }}
         activeOpacity={0.6}
       >
@@ -139,6 +191,7 @@ const Dashboard = () => {
           style={{
             flexDirection: "row",
             alignItems: "center",
+            justifyContent: "center",
             paddingHorizontal: 16,
           }}
         >
@@ -191,6 +244,7 @@ const Dashboard = () => {
             numColumns={3}
             scrollEnabled={false}
             contentContainerStyle={styles.gridContainer}
+            columnWrapperStyle={styles.columnWrapper}
           />
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -218,17 +272,26 @@ const Dashboard = () => {
       </View>
 
       {/* Scrollable Places List */}
-      <FlatList
-        data={items}
-        renderItem={renderPlaceCard}
-        keyExtractor={(_, index) => index.toString()}
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-        style={styles.placesList}
-        bounces={true}
-        overScrollMode="never"
-        decelerationRate="normal"
-      />
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#007AFF" />
+      ) : filteredItems.length > 0 ? (
+        <FlatList
+          data={filteredItems}
+          renderItem={renderPlaceCard}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          style={styles.placesList}
+          bounces={true}
+          overScrollMode="never"
+          decelerationRate="normal"
+        />
+      ) : (
+        <Text style={{ textAlign: "center", marginTop: 20 }}>
+          No places found within 200 meters.
+        </Text>
+      )}
     </SafeAreaView>
   );
 };
@@ -299,7 +362,7 @@ const styles = StyleSheet.create({
   gridContainer: {
     paddingTop: 10,
     paddingBottom: 20,
-    justifyContent: "center",
+    width: "100%",
   },
   placesTitle: {
     fontSize: 18,
@@ -366,6 +429,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#aaa",
     marginTop: 4,
+  },
+  categoryTouchable: {
+    flex: 1,
+    maxWidth: "33.3%",
+    paddingHorizontal: 6,
+  },
+  columnWrapper: {
+    justifyContent: "space-between",
+    width: "100%",
   },
 });
 

@@ -1,5 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+
 import Animation from "./animation";
 
 export default function RootLayout() {
@@ -66,7 +67,7 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
-            name="photos/gallery"
+            name="photos/[id]"
             options={{
               animation: "fade",
               animationDuration: 200,

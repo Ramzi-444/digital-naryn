@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Linking, Platform } from "react-native";
 import {
   View,
@@ -14,7 +14,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import MapView from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
+import { useSearchParams } from "expo-router/build/hooks";
 
 const categories = new Array(5).fill({
   title: "Restaurants",
@@ -30,23 +31,71 @@ const places = new Array(10).fill({
 
 const CategoriesPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
+  const [category, setCategory] = useState<any>(null);
+  const [items, setItems] = useState<any>([]);
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    latitudeDelta?: number;
+    longitudeDelta?: number;
+  }>({
+    latitude: 0,
+    longitude: 0,
+  });
 
-  const location = {
-    latitude: 41.4287, // Replace with actual coordinates
-    longitude: 75.9911, // Replace with actual coordinates
-    latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
-  };
+  useEffect(() => {
+    // Fetch category data
+    const fetchCategory = async () => {
+      try {
+        const response = await fetch(
+          `http://157.230.109.162:8000/api/categories/${id}`
+        );
+        const data = await response.json();
+        setCategory(data);
+      } catch (error) {
+        console.error("Error fetching category:", error);
+      }
+    };
+
+    // Fetch items data
+    const fetchItems = async () => {
+      try {
+        const response = await fetch("http://157.230.109.162:8000/api/items/");
+        const data = await response.json();
+        // Filter items by category ID
+        const filteredItems = data.filter(
+          (item: any) => id !== null && item.category === parseInt(id)
+        );
+        setItems(filteredItems);
+
+        // Update map location based on the first item's coordinates (if available)
+        if (filteredItems.length > 0) {
+          setLocation({
+            latitude: filteredItems[0].latitude,
+            longitude: filteredItems[0].longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching items:", error);
+      }
+    };
+
+    fetchCategory();
+    fetchItems();
+  }, [id]);
 
   const openInMaps = () => {
-    const lat = 41.4287;
-    const lng = 75.9911;
-    const label = "Saffran, Naryn";
+    const { latitude, longitude } = location;
+    const label = category?.name || "Location";
 
     const url =
       Platform.OS === "ios"
-        ? `http://maps.apple.com/?ll=${lat},${lng}&q=${label}`
-        : `geo:${lat},${lng}?q=${label}`;
+        ? `http://maps.apple.com/?ll=${latitude},${longitude}&q=${label}`
+        : `geo:${latitude},${longitude}?q=${label}`;
 
     Linking.openURL(url);
   };
@@ -54,20 +103,20 @@ const CategoriesPage = () => {
   const renderPlaceCard = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.placeCard}
-      onPress={() => router.push("/items/1")}
+      onPress={() => router.push(`/items/${item.id}`)}
       activeOpacity={0.7}
     >
-      <Image source={item.logo} style={styles.placeLogo} />
+      <Image source={{ uri: item.avatar_photo }} style={styles.placeLogo} />
       <View style={styles.placeInfo}>
         <Text style={styles.placeName}>{item.name}</Text>
         <Text style={styles.placeAddress}>{item.address}</Text>
-        <Text style={styles.placePhone}>{item.phone}</Text>
+        <Text style={styles.placePhone}>{item.phone_numbers}</Text>
       </View>
       <TouchableOpacity
         style={styles.photoPreview}
         onPress={(e) => {
           e.stopPropagation();
-          router.push("/photos/gallery");
+          router.push(`/photos/${item.id}`);
         }}
       >
         <Ionicons name="images-outline" size={22} color="#007AFF" />
@@ -117,7 +166,7 @@ const CategoriesPage = () => {
       {/* Search */}
 
       <View style={styles.locationRow}>
-        <Text style={styles.locationLabel}>Restaurants</Text>
+        <Text style={styles.locationLabel}>{category?.name || "No Name"}</Text>
         <TouchableOpacity onPress={() => openInMaps()}>
           <Text style={styles.openInMapsText}>
             Open in Maps <Text style={{ fontSize: 16 }}>›</Text>
@@ -129,7 +178,12 @@ const CategoriesPage = () => {
       <View style={{ width: "100%", height: 300 }}>
         <MapView
           style={styles.map}
-          initialRegion={location}
+          initialRegion={{
+            latitude: items[0]?.latitude || 41.4287, // Fallback to default if items is empty
+            longitude: items[0]?.longitude || 75.9911,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }}
           scrollEnabled={true}
           zoomEnabled={true}
           pitchEnabled={true}
@@ -140,14 +194,26 @@ const CategoriesPage = () => {
           loadingEnabled={true}
           loadingIndicatorColor="#007AFF"
           loadingBackgroundColor="#ffffff"
-        />
+        >
+          {items.map((item: { id: React.Key | null | undefined; latitude: any; longitude: any; name: string | undefined; address: string | undefined; }) => (
+            <Marker
+              key={item.id}
+              coordinate={{
+                latitude: item.latitude,
+                longitude: item.longitude,
+              }}
+              title={item.name}
+              description={item.address}
+            />
+          ))}
+        </MapView>
       </View>
       {/* Scrollable Bottom Sheet Style List */}
       <View style={styles.sheetContainer}>
         <FlatList
-          data={places}
+          data={items}
           renderItem={renderPlaceCard}
-          keyExtractor={(_, index) => index.toString()}
+          keyExtractor={(item) => item.id.toString()}
           showsVerticalScrollIndicator={false}
           bounces={true}
           overScrollMode="never"

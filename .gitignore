@@ -6,6 +6,8 @@ __pycache__/
 *.py[cod]
 *.sqlite3
 *.db
+.expo
+
 
 # === Python / Django ===
 backend/env/                  # virtual environment
@@ -24,3 +26,4 @@ frontend/.vscode/
 
 # === OS Files ===
 Thumbs.db
+node_modules

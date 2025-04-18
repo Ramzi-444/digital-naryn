@@ -3,24 +3,35 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   FlatList,
   Dimensions,
   Modal,
   SafeAreaView,
   Animated,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useRouter, Stack, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Image } from "react-native";
 
-// This will be replaced with data from backend
-const fallbackPhotos = [
-  require("../../assets/places/bamboo-cafe/bamboo-cafe.jpg"),
-  require("../../assets/places/bamboo-cafe/cafe-1.jpg"),
-  require("../../assets/places/bamboo-cafe/cafe-2.jpg"),
-  // Add more photos here
-];
+// Simple cache for photos
+const photoCache = new Map();
+
+const PhotoSkeleton = () => (
+  <View style={[styles.photoContainer, { backgroundColor: "#f5f5f5" }]}>
+    <Animated.View
+      style={[
+        styles.skeletonAnimation,
+        {
+          opacity: useRef(new Animated.Value(0.3)).current,
+        },
+      ]}
+    />
+  </View>
+);
 
 const GalleryPage = () => {
   const router = useRouter();
@@ -29,27 +40,80 @@ const GalleryPage = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [fullScreenLoading, setFullScreenLoading] = useState(false);
+  const [imageLoadingStates, setImageLoadingStates] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   useEffect(() => {
     const fetchItem = async () => {
       if (!id) return;
 
-      try {
-        setLoading(true);
-        const response = await fetch(
-          `http://157.230.109.162:8000/api/items/${id}`
-        );
-        const data = await response.json();
-        setItem(data);
-        console.log("Fetched photos data:", data?.photos);
-      } catch (error) {
-        console.error("Error fetching item data for photos:", error);
-      } finally {
+      // Try to get from in-memory cache first
+      const cacheKey = `photos:${id}`;
+      if (photoCache.has(cacheKey)) {
+        setItem(photoCache.get(cacheKey));
         setLoading(false);
+        return;
       }
+
+      // Try to get from storage cache
+      try {
+        const cachedItem = await AsyncStorage.getItem(cacheKey);
+        if (cachedItem) {
+          const parsedItem = JSON.parse(cachedItem);
+          setItem(parsedItem);
+          photoCache.set(cacheKey, parsedItem);
+          setLoading(false);
+
+          // Still refresh in background
+          refreshData(false);
+          return;
+        }
+      } catch (error) {
+        console.error("Error reading from cache:", error);
+      }
+
+      // No cache, load with loading state
+      refreshData(true);
     };
+
     fetchItem();
   }, [id]);
+
+  const refreshData = async (showLoading = true) => {
+    if (!id) return;
+
+    if (showLoading) {
+      setLoading(true);
+    }
+
+    try {
+      const response = await fetch(
+        `http://157.230.109.162:8000/api/items/${id}`
+      );
+      const data = await response.json();
+
+      // Update state
+      setItem(data);
+
+      // Save to cache
+      const cacheKey = `photos:${id}`;
+      photoCache.set(cacheKey, data);
+
+      try {
+        await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
+      } catch (error) {
+        console.error("Error saving to cache:", error);
+      }
+    } catch (error) {
+      console.error("Error fetching item data:", error);
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  };
 
   const closePhoto = () => {
     Animated.spring(fadeAnim, {
@@ -86,39 +150,85 @@ const GalleryPage = () => {
   }: {
     item: string;
     index: number;
-  }) => (
-    <TouchableOpacity
-      style={styles.photoContainer}
-      onPress={() => openPhoto(index)}
-      activeOpacity={0.9}
-      delayPressIn={50}
-    >
-      <Image
-        source={{ uri: `http://157.230.109.162:8000/media/${photo}` }}
-        style={styles.photoThumbnail}
-      />
-      <View style={styles.photoOverlay} />
-    </TouchableOpacity>
-  );
+  }) => {
+    return (
+      <TouchableOpacity
+        style={styles.photoContainer}
+        onPress={() => openPhoto(index)}
+        activeOpacity={0.9}
+        delayPressIn={50}
+      >
+        {imageLoadingStates[photo] && (
+          <View style={styles.imageLoadingContainer}>
+            <ActivityIndicator size="small" color="#007AFF" />
+          </View>
+        )}
+        <Image
+          source={{ uri: `http://157.230.109.162:8000/media/${photo}` }}
+          style={[
+            styles.photoThumbnail,
+            imageLoadingStates[photo] && { opacity: 0 },
+          ]}
+          onLoadStart={() => {
+            setImageLoadingStates((prev) => ({ ...prev, [photo]: true }));
+          }}
+          onLoadEnd={() => {
+            setImageLoadingStates((prev) => ({ ...prev, [photo]: false }));
+          }}
+        />
+        <View style={styles.photoOverlay} />
+      </TouchableOpacity>
+    );
+  };
 
-  // Render a fallback photo if needed
-  const renderFallbackPhoto = ({
-    item,
-    index,
-  }: {
-    item: any;
-    index: number;
-  }) => (
-    <TouchableOpacity
-      style={styles.photoContainer}
-      onPress={() => openPhoto(index)}
-      activeOpacity={0.9}
-      delayPressIn={50}
-    >
-      <Image source={item} style={styles.photoThumbnail} />
-      <View style={styles.photoOverlay} />
-    </TouchableOpacity>
-  );
+  useEffect(() => {
+    // Clean up expired cache items
+    const cleanupCache = async () => {
+      try {
+        const now = Date.now();
+        const keys = await AsyncStorage.getAllKeys();
+        const photoKeys = keys.filter((key) => key.startsWith("photos:"));
+
+        for (const key of photoKeys) {
+          const item = await AsyncStorage.getItem(key);
+          if (item) {
+            const parsed = JSON.parse(item);
+            // If cached more than 24 hours ago, remove it
+            if (
+              parsed.timestamp &&
+              now - parsed.timestamp > 24 * 60 * 60 * 1000
+            ) {
+              await AsyncStorage.removeItem(key);
+              photoCache.delete(key);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error cleaning cache:", error);
+      }
+    };
+
+    cleanupCache();
+  }, []);
+
+  useEffect(() => {
+    if (loading) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(fadeAnim, {
+            toValue: 0.7,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 0.3,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [loading]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -134,15 +244,34 @@ const GalleryPage = () => {
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{item?.name || "Gallery"}</Text>
+        <Text
+          style={[
+            styles.headerTitle,
+            { flex: 1, flexWrap: "wrap", textAlign: "center" },
+          ]}
+        >
+          {item?.name || "Gallery"}
+        </Text>
         <View style={styles.placeholder} />
       </View>
 
       {/* Photos List */}
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading photos...</Text>
-        </View>
+        <FlatList
+          data={[1, 2, 3]} // Show 3 skeleton items
+          renderItem={() => <PhotoSkeleton />}
+          keyExtractor={(item) => item.toString()}
+          contentContainerStyle={styles.photosList}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={() => refreshData(true)}
+              tintColor="#007AFF"
+              colors={["#007AFF"]}
+            />
+          }
+        />
       ) : item?.photos && item.photos.length > 0 ? (
         <FlatList
           data={item.photos}
@@ -153,18 +282,20 @@ const GalleryPage = () => {
           bounces={true}
           overScrollMode="never"
           decelerationRate="normal"
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={() => refreshData(true)}
+              tintColor="#007AFF"
+              colors={["#007AFF"]}
+            />
+          }
         />
       ) : (
-        <FlatList
-          data={fallbackPhotos}
-          renderItem={renderFallbackPhoto}
-          keyExtractor={(_, index) => index.toString()}
-          contentContainerStyle={styles.photosList}
-          showsVerticalScrollIndicator={false}
-          bounces={true}
-          overScrollMode="never"
-          decelerationRate="normal"
-        />
+        <View style={styles.emptyContainer}>
+          <Ionicons name="images-outline" size={64} color="#ccc" />
+          <Text style={styles.emptyText}>No photos available</Text>
+        </View>
       )}
 
       {/* Full Screen Photo Modal */}
@@ -198,30 +329,23 @@ const GalleryPage = () => {
             <Ionicons name="close" size={24} color="#fff" />
           </TouchableOpacity>
 
-          {selectedPhoto !== null && (
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={(e) => {
-                e.stopPropagation();
-              }}
-              style={styles.modalImageContainer}
-            >
-              {item?.photos && item.photos.length > 0 ? (
-                <Image
-                  source={{
-                    uri: `http://157.230.109.162:8000/media/${item.photos[selectedPhoto]}`,
-                  }}
-                  style={styles.fullScreenPhoto}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Image
-                  source={fallbackPhotos[selectedPhoto]}
-                  style={styles.fullScreenPhoto}
-                  resizeMode="contain"
-                />
+          {selectedPhoto !== null && item?.photos && item.photos.length > 0 && (
+            <View style={styles.modalImageContainer}>
+              <Image
+                source={{
+                  uri: `http://157.230.109.162:8000/media/${item.photos[selectedPhoto]}`,
+                }}
+                style={styles.fullScreenPhoto}
+                resizeMode="contain"
+                onLoadStart={() => setFullScreenLoading(true)}
+                onLoadEnd={() => setFullScreenLoading(false)}
+              />
+              {fullScreenLoading && (
+                <View style={styles.fullScreenLoadingContainer}>
+                  <ActivityIndicator size="large" color="#fff" />
+                </View>
               )}
-            </TouchableOpacity>
+            </View>
           )}
         </Animated.View>
       </Modal>
@@ -328,6 +452,45 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 18,
     fontWeight: "600",
+    marginTop: 12,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: "#666",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  skeletonAnimation: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#e0e0e0",
+    position: "absolute",
+  },
+  imageLoadingContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  fullScreenLoadingContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
 });
 

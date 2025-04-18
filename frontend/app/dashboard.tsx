@@ -97,7 +97,7 @@ const Dashboard = () => {
           { latitude: location.latitude, longitude: location.longitude },
           { latitude: item.latitude, longitude: item.longitude }
         );
-        return distance <= 200; // 200 meters
+        return distance <= 1000; // 1000 meters
       });
       setFilteredItems(nearby);
     };
@@ -118,7 +118,7 @@ const Dashboard = () => {
           { latitude: location.latitude, longitude: location.longitude },
           { latitude: item.latitude, longitude: item.longitude }
         );
-        return distance <= 200; // 200 meters
+        return distance <= 1000; // 200 meters
       });
       setFilteredItems(nearby);
     }

@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   icon: {
-    width: width * 0.1, // Responsive icon size
+    width: width * 0.1,
     height: width * 0.1,
   },
 });

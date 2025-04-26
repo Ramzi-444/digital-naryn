@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  AppState,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +17,7 @@ import axios from "axios";
 import * as Location from "expo-location"; // Import expo-location
 import { getDistance } from "geolib"; // Import geolib for distance calculation
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 const Dashboard = () => {
   interface Category {
@@ -44,52 +46,78 @@ const Dashboard = () => {
     longitude: number;
   } | null>(null);
   const router = useRouter();
+  const appState = useRef(AppState.currentState);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(
+        "http://157.230.109.162:8000/api/categories/"
+      );
+      setCategories(response.data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchItems = async () => {
+    try {
+      const response = await axios.get(
+        "http://157.230.109.162:8000/api/items/"
+      );
+      setItems(response.data);
+    } catch (error) {
+      console.error("Error fetching items:", error);
+    }
+  };
+
+  const getLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        alert("Location permission is required to show nearby places.");
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({});
+      setLocation({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+    } catch (error) {
+      console.error("Error getting location:", error);
+      alert(
+        "Failed to retrieve location. Please enable location services and try again."
+      );
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    await Promise.all([fetchCategories(), fetchItems(), getLocation()]);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await axios.get(
-          "http://157.230.109.162:8000/api/categories/"
-        );
-        setCategories(response.data);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      } finally {
-        setLoading(false);
+    // Add AppState listener to handle app coming back from background
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        console.log("App has come to the foreground!");
+        // Refresh data when app comes back to foreground
+        fetchData();
       }
-    };
+      appState.current = nextAppState;
+    });
 
-    const fetchItems = async () => {
-      try {
-        const response = await axios.get(
-          "http://157.230.109.162:8000/api/items/"
-        );
-        setItems(response.data);
-      } catch (error) {
-        console.error("Error fetching items:", error);
-      }
+    return () => {
+      subscription.remove();
     };
+  }, []);
 
-    const getLocation = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          alert("Location permission is required to show nearby places.");
-          return;
-        }
-        const loc = await Location.getCurrentPositionAsync({});
-        setLocation({
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        });
-      } catch (error) {
-        console.error("Error getting location:", error);
-        alert(
-          "Failed to retrieve location. Please enable location services and try again."
-        );
-      }
-    };
-
+  useEffect(() => {
     const filterNearbyItems = () => {
       if (!location) return;
       const nearby = items.filter((item) => {
@@ -100,12 +128,6 @@ const Dashboard = () => {
         return distance <= 1000; // 1000 meters
       });
       setFilteredItems(nearby);
-    };
-
-    const fetchData = async () => {
-      setLoading(true);
-      await Promise.all([fetchCategories(), fetchItems(), getLocation()]);
-      setLoading(false); // Move this here
     };
 
     fetchData();
@@ -382,7 +404,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 8,
     marginRight: 12,
-    resizeMode: "cover", // Ensure the image scales properly
+    resizeMode: "cover",
   },
   placeInfo: {
     flex: 1,

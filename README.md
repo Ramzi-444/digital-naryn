@@ -2,6 +2,17 @@
 
 A mobile application for discovering local businesses and services in Naryn city.
 
+# build
+npx expo prebuild
+
+# Runs app in Release mode (for production/demo).
+npx expo run:ios --configuration Release
+
+# Run in debug mode
+npx expo start 
+
+
+
 ## 🚀 Live Demo
 
 ### Backend Server

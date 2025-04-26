@@ -289,7 +289,7 @@ const Dashboard = () => {
         />
       ) : (
         <Text style={{ textAlign: "center", marginTop: 20 }}>
-          No places found within 200 meters.
+          No places found within 1000 meters.
         </Text>
       )}
     </SafeAreaView>

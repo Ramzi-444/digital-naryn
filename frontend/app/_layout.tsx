@@ -19,9 +19,9 @@ export default function RootLayout() {
 
   return (
     <>
-      {/* {!animationFinished ? (
+      {!animationFinished ? (
         <Animation onAnimationFinished={handleAnimationFinished} />
-      ) : ( */}
+      ) : (
         <Stack
           screenOptions={{
             headerShown: false,
@@ -76,7 +76,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
-       {/* )}  */}
+      )}
     </>
   );
 }

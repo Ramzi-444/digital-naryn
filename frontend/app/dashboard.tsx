@@ -18,7 +18,6 @@ import * as Location from "expo-location"; // Import expo-location
 import { getDistance } from "geolib"; // Import geolib for distance calculation
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-
 const Dashboard = () => {
   interface Category {
     id: number;
@@ -125,7 +124,7 @@ const Dashboard = () => {
           { latitude: location.latitude, longitude: location.longitude },
           { latitude: item.latitude, longitude: item.longitude }
         );
-        return distance <= 1000; // 1000 meters
+        return distance <= 2000; // 2000 meters
       });
       setFilteredItems(nearby);
     };
@@ -140,7 +139,7 @@ const Dashboard = () => {
           { latitude: location.latitude, longitude: location.longitude },
           { latitude: item.latitude, longitude: item.longitude }
         );
-        return distance <= 1000; // 200 meters
+        return distance <= 2000; // 2000 meters
       });
       setFilteredItems(nearby);
     }
@@ -311,7 +310,7 @@ const Dashboard = () => {
         />
       ) : (
         <Text style={{ textAlign: "center", marginTop: 20 }}>
-          No places found within 1000 meters.
+          No places found within 2000 meters.
         </Text>
       )}
     </SafeAreaView>

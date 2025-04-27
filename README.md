@@ -7,6 +7,8 @@ npx expo prebuild
 
 # Runs app in Release mode (for production/demo).
 npx expo run:ios --configuration Release
+npx expo run:android --configuration Release
+
 
 # Run in debug mode
 npx expo start 

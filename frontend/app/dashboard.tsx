@@ -17,6 +17,7 @@ import axios from "axios";
 import * as Location from "expo-location"; // Import expo-location
 import { getDistance } from "geolib"; // Import geolib for distance calculation
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_URL } from "../config/api";
 
 const Dashboard = () => {
   interface Category {
@@ -49,9 +50,7 @@ const Dashboard = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get(
-        "http://157.230.109.162:8000/api/categories/"
-      );
+      const response = await axios.get(`${API_URL}/api/categories/`);
       setCategories(response.data);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -62,9 +61,7 @@ const Dashboard = () => {
 
   const fetchItems = async () => {
     try {
-      const response = await axios.get(
-        "http://157.230.109.162:8000/api/items/"
-      );
+      const response = await axios.get(`${API_URL}/api/items/`);
       setItems(response.data);
     } catch (error) {
       console.error("Error fetching items:", error);

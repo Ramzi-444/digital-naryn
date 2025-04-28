@@ -24,6 +24,7 @@ import MapView, { Marker } from "react-native-maps";
 import { useSearchParams } from "expo-router/build/hooks";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_URL } from "../../config/api";
 
 const { width } = Dimensions.get("window");
 
@@ -131,9 +132,7 @@ const ItemPage = () => {
     }
 
     try {
-      const response = await fetch(
-        `http://157.230.109.162:8000/api/items/${id}`
-      );
+      const response = await fetch(`${API_URL}/api/items/${id}`);
       const data = await response.json();
       setItem(data);
 
@@ -141,7 +140,7 @@ const ItemPage = () => {
       let backendImages = [];
       if (data?.photos && data.photos.length > 0) {
         backendImages = data.photos.map((photo: string) => ({
-          uri: `http://157.230.109.162:8000/media/${photo}`,
+          uri: `${API_URL}/media/${photo}`,
         }));
         setHeaderImages(backendImages);
       }
@@ -767,7 +766,7 @@ const ItemPage = () => {
                   >
                     <Image
                       source={{
-                        uri: `http://157.230.109.162:8000/media/${photo}`,
+                        uri: `${API_URL}/media/${photo}`,
                       }}
                       style={styles.photoItem}
                     />

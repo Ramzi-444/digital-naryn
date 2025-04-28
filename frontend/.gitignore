@@ -4,8 +4,6 @@
 *.log
 __pycache__/
 *.py[cod]
-*.sqlite3
-*.db
 node_modules/
 .vscode/
 .expo
@@ -14,8 +12,7 @@ node_modules/
 # === Python / Django ===
 backend/env/                  # virtual environment
 backend/__pycache__/
-backend/**/*.pyc
-backend/db.sqlite3           # if using SQLite
+backend/**/*.pyc=
 
 # === Node / React Native ===
 frontend/.expo/

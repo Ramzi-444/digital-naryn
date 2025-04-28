@@ -16,6 +16,7 @@ import { useRouter, Stack, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "react-native";
+import { API_URL } from "../../config/api";
 
 // Simple cache for photos
 const photoCache = new Map();
@@ -89,9 +90,7 @@ const GalleryPage = () => {
     }
 
     try {
-      const response = await fetch(
-        `http://157.230.109.162:8000/api/items/${id}`
-      );
+      const response = await fetch(`${API_URL}/api/items/${id}`);
       const data = await response.json();
 
       // Update state
@@ -164,7 +163,7 @@ const GalleryPage = () => {
           </View>
         )}
         <Image
-          source={{ uri: `http://157.230.109.162:8000/media/${photo}` }}
+          source={{ uri: `${API_URL}/media/${photo}` }}
           style={[
             styles.photoThumbnail,
             imageLoadingStates[photo] && { opacity: 0 },
@@ -333,7 +332,7 @@ const GalleryPage = () => {
             <View style={styles.modalImageContainer}>
               <Image
                 source={{
-                  uri: `http://157.230.109.162:8000/media/${item.photos[selectedPhoto]}`,
+                  uri: `${API_URL}/media/${item.photos[selectedPhoto]}`,
                 }}
                 style={styles.fullScreenPhoto}
                 resizeMode="contain"

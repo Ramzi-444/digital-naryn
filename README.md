@@ -57,6 +57,42 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+### ⚡️ Environment & API URL Setup (IMPORTANT!)
+
+To make the app work on your emulator, simulator, or real device, you must set the correct API URL in your frontend `.env` file:
+
+1. **Create a `.env` file in the `frontend/` directory:**
+
+```
+# For Android emulator
+API_URL_ANDROID=http://10.0.2.2:8000
+
+# For iOS simulator
+API_URL_IOS=http://127.0.0.1:8000
+
+# For real devices (replace with your computer's local IP address)
+# API_URL_ANDROID=http://192.168.1.201:8000
+# API_URL_IOS=http://192.168.1.201:8000
+```
+
+- To find your computer's local IP, run `ifconfig` (Mac/Linux) or `ipconfig` (Windows) and look for something like `192.168.x.x`.
+- Make sure your phone and computer are on the same WiFi network.
+- If you want to run on a real device, uncomment and set both URLs to your computer's IP.
+
+
+3. **Start your backend with:**
+
+   ```bash
+   python manage.py runserver 0.0.0.0:8000
+   ```
+
+   - This makes your backend accessible to emulators, simulators, and real devices.
+
+4. **Restart Expo with cache clear after changing `.env`:**
+   ```bash
+   npx expo start -c
+   ```
+
 ### Local Development
 
 #### Frontend Development
@@ -64,13 +100,6 @@ pip install -r requirements.txt
 ```bash
 cd frontend
 npx expo start
-```
-
-#### Backend Development
-
-```bash
-cd backend
-python manage.py runserver
 ```
 
 ## 📸 Screenshots

@@ -14,6 +14,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { API_URL } from "../config/api";
 
 const SearchModal = () => {
   const router = useRouter();
@@ -105,8 +106,8 @@ const SearchModal = () => {
       setLoading(true);
       try {
         const [itemsResponse, categoriesResponse] = await Promise.all([
-          fetch("http://157.230.109.162:8000/api/items/"),
-          fetch("http://157.230.109.162:8000/api/categories/"),
+          fetch(`${API_URL}/api/items/`),
+          fetch(`${API_URL}/api/categories/`),
         ]);
         const itemsData = await itemsResponse.json();
         const categoriesData = await categoriesResponse.json();
@@ -210,7 +211,7 @@ const SearchModal = () => {
     .map(([id, item]) => ({
       id: parseInt(id),
       name: item.name,
-      type: item.type || "item",
+      type: (item as any).type || "item",
       count: item.count,
     }));
 

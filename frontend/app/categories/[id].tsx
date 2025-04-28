@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
 import { useSearchParams } from "expo-router/build/hooks";
+import { API_URL } from "../../config/api";
 
 const categories = new Array(5).fill({
   title: "Restaurants",
@@ -49,9 +50,7 @@ const CategoriesPage = () => {
     // Fetch category data
     const fetchCategory = async () => {
       try {
-        const response = await fetch(
-          `http://157.230.109.162:8000/api/categories/${id}`
-        );
+        const response = await fetch(`${API_URL}/api/categories/${id}`);
         const data = await response.json();
         setCategory(data);
       } catch (error) {
@@ -62,7 +61,7 @@ const CategoriesPage = () => {
     // Fetch items data
     const fetchItems = async () => {
       try {
-        const response = await fetch("http://157.230.109.162:8000/api/items/");
+        const response = await fetch(`${API_URL}/api/items/`);
         const data = await response.json();
         // Filter items by category ID
         const filteredItems = data.filter(
@@ -195,17 +194,25 @@ const CategoriesPage = () => {
           loadingIndicatorColor="#007AFF"
           loadingBackgroundColor="#ffffff"
         >
-          {items.map((item: { id: React.Key | null | undefined; latitude: any; longitude: any; name: string | undefined; address: string | undefined; }) => (
-            <Marker
-              key={item.id}
-              coordinate={{
-                latitude: item.latitude,
-                longitude: item.longitude,
-              }}
-              title={item.name}
-              description={item.address}
-            />
-          ))}
+          {items.map(
+            (item: {
+              id: React.Key | null | undefined;
+              latitude: any;
+              longitude: any;
+              name: string | undefined;
+              address: string | undefined;
+            }) => (
+              <Marker
+                key={item.id}
+                coordinate={{
+                  latitude: item.latitude,
+                  longitude: item.longitude,
+                }}
+                title={item.name}
+                description={item.address}
+              />
+            )
+          )}
         </MapView>
       </View>
       {/* Scrollable Bottom Sheet Style List */}
